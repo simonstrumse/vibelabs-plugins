@@ -38,7 +38,14 @@ from bot_common import (
     dbg,
 )
 from conversation_logger import log_message
-from task_queue import TaskQueue
+from task_queue import TaskQueue, P_WATCHER
+from heartbeat import (
+    HEARTBEAT_INTERVAL_SECONDS,
+    HEARTBEAT_STARTUP_DELAY_SECONDS,
+    _load_heartbeat_checklist,
+    _is_heartbeat_ok,
+    build_heartbeat_prompt,
+)
 from runtime_support import (
     build_runtime_context,
     compose_system_prompt,
@@ -1397,9 +1404,131 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/cancel — stop the running task\n"
         "/usage — show 5h + weekly usage remaining\n"
         "/context — show context window usage\n"
+        "/heartbeat — run heartbeat check now\n"
         "\nYou can also just send a regular message and I'll handle it."
     )
     await _reply_command(update, text, command="help")
+
+
+@authorized
+async def cmd_heartbeat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/heartbeat — manually trigger the heartbeat check."""
+    sessions.touch_activity(_session_key(update.effective_chat.id))
+    _log_command_request(update, command="heartbeat")
+    try:
+        await update.message.chat.send_action("typing")
+    except TelegramError:
+        pass
+    await _reply_command(update, "Running heartbeat check...", command="heartbeat")
+    await run_heartbeat(bot=context.bot)
+
+
+# ---------------------------------------------------------------------------
+# Heartbeat — periodic autonomous check driven by HEARTBEAT.md
+# ---------------------------------------------------------------------------
+
+HEARTBEAT_SESSION_KEY = "heartbeat:triage"
+HEARTBEAT_MAX_AGE_HOURS = 24
+
+
+def _heartbeat_session_age() -> float:
+    """Return age of heartbeat session in hours."""
+    last = sessions._last_activity.get(HEARTBEAT_SESSION_KEY)
+    if not last:
+        return float('inf')
+    return (datetime.now() - last).total_seconds() / 3600
+
+
+async def run_heartbeat(bot=None) -> None:
+    """Run heartbeat: read HEARTBEAT.md, check items, notify if needed.
+
+    Uses a dedicated session that persists across runs so the heartbeat
+    remembers what it already handled. Auto-resets after 24h.
+    """
+    checklist = _load_heartbeat_checklist()
+    if checklist is None:
+        log.debug("Heartbeat: HEARTBEAT.md missing or empty, skipping")
+        return
+
+    # Don't interrupt active conversations
+    if _claude_lock.locked():
+        log.info("Heartbeat: skipping — assistant already running")
+        return
+
+    async with _claude_lock:
+        session_id, is_new = sessions.get_session(HEARTBEAT_SESSION_KEY)
+
+        # Auto-reset stale heartbeat sessions
+        if not is_new and _heartbeat_session_age() > HEARTBEAT_MAX_AGE_HOURS:
+            log.info("Heartbeat: session older than %dh, resetting",
+                     HEARTBEAT_MAX_AGE_HOURS)
+            prev_session = sessions.get_previous_session(HEARTBEAT_SESSION_KEY)
+            if prev_session:
+                loop = asyncio.get_running_loop()
+                await loop.run_in_executor(
+                    None, lambda: consolidate_session(
+                        prev_session, system_prompt=EA_SYSTEM_PROMPT,
+                        session_manager=sessions, session_key=HEARTBEAT_SESSION_KEY))
+            session_id = sessions.reset_session(HEARTBEAT_SESSION_KEY)
+            is_new = True
+
+        sessions.touch_activity(HEARTBEAT_SESSION_KEY)
+        dbg.info("HEARTBEAT | session=%s (%s)",
+                 (session_id[:8] if session_id else "new"),
+                 "new" if is_new else "resume")
+
+        async def _heartbeat_progress(msg: str) -> None:
+            log.info("Heartbeat: %s", msg)
+
+        prompt = build_heartbeat_prompt(checklist)
+        triage = await run_assistant_streaming(
+            inject_runtime_context(
+                prompt,
+                build_runtime_context(
+                    channel="heartbeat",
+                    chat_id=HEARTBEAT_SESSION_KEY,
+                    session_key=HEARTBEAT_SESSION_KEY,
+                    purpose="Periodic heartbeat check",
+                ),
+            ),
+            system_prompt=EA_SYSTEM_PROMPT,
+            session_id=session_id,
+            is_new_session=is_new,
+            session_manager=sessions,
+            session_key=HEARTBEAT_SESSION_KEY,
+            progress_callback=_heartbeat_progress,
+        )
+
+    # Suppress if nothing noteworthy
+    if _is_heartbeat_ok(triage):
+        log.info("Heartbeat: nothing noteworthy")
+        return
+
+    # Don't forward timeout messages
+    if "timed out" in triage.lower():
+        log.warning("Heartbeat: timed out, not forwarding: %s", triage[:200])
+        return
+
+    log_message(ch="telegram", dir="out", from_="assistant",
+                type_="heartbeat", msg=triage)
+
+    log.info("Heartbeat: something noteworthy, notifying")
+    if bot:
+        for chat_id in ALLOWED_CHAT_IDS:
+            await _safe_send(bot, chat_id, triage)
+            log.info("Heartbeat: notification sent to chat %s", chat_id)
+
+
+async def _heartbeat_loop(bot) -> None:
+    """Periodic heartbeat loop."""
+    await asyncio.sleep(HEARTBEAT_STARTUP_DELAY_SECONDS)
+    log.info("Heartbeat: started (interval=%ds)", HEARTBEAT_INTERVAL_SECONDS)
+    while True:
+        try:
+            await run_heartbeat(bot=bot)
+        except Exception as e:
+            log.warning("Heartbeat: loop error: %s", e)
+        await asyncio.sleep(HEARTBEAT_INTERVAL_SECONDS)
 
 
 # ---------------------------------------------------------------------------
@@ -1435,7 +1564,11 @@ def _migrate_sessions_if_needed() -> None:
 
 async def _handle_queued_task(task) -> None:
     """Task queue consumer handler — dispatches tasks by type."""
-    log.warning("Unknown task type: %s", task.task_type)
+    if task.task_type == "heartbeat":
+        bot = task.payload.get("bot")
+        await run_heartbeat(bot=bot)
+    else:
+        log.warning("Unknown task type: %s", task.task_type)
 
 
 def _cleanup_orphaned_processes():
@@ -1521,12 +1654,15 @@ def main():
             BotCommand("cancel", "Stop the running task"),
             BotCommand("usage", "Show 5h + weekly usage remaining"),
             BotCommand("context", "Show context window usage"),
+            BotCommand("heartbeat", "Run heartbeat check now"),
         ])
 
-        # Start background task queue consumer
+        # Start background tasks: queue consumer + heartbeat loop
         _bg_tasks.append(asyncio.create_task(
             task_queue.start_consumer(_handle_queued_task)))
-        log.info("Task queue consumer started")
+        _bg_tasks.append(asyncio.create_task(
+            _heartbeat_loop(application.bot)))
+        log.info("Task queue consumer and heartbeat started")
 
     async def pre_shutdown(application):
         """Cancel background tasks cleanly on shutdown."""
@@ -1551,6 +1687,7 @@ def main():
     app.add_handler(CommandHandler("cancel", cmd_cancel))
     app.add_handler(CommandHandler("usage", cmd_usage))
     app.add_handler(CommandHandler("context", cmd_context))
+    app.add_handler(CommandHandler("heartbeat", cmd_heartbeat))
 
     # Photos -> Save to disk + let Claude see them
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))

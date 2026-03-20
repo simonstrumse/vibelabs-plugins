@@ -47,6 +47,17 @@ Ask these questions in **2-3 rounds**, not all at once. Wait for answers before 
 - "What is the owner's Telegram user ID?" — explain: "Message @userinfobot on Telegram to get your numeric user ID"
 - If they don't have a Telegram bot yet: note this as pending for Phase 4
 
+**Round 3 — Heartbeat:**
+- "Your assistant has a heartbeat — every 30 minutes it wakes up and checks things autonomously. What should it monitor?"
+- Suggest these defaults (user can pick, modify, or skip):
+  - Check `TASKS.md` for overdue or critical items
+  - Check `ACTIVE_THREADS.md` for pending triggers that are now due
+  - Check today's calendar for upcoming events in the next 2 hours
+  - Check `memory/STATE.md` for time-sensitive watchouts
+- "You can also configure this later by editing `memory/HEARTBEAT.md`. Want to set it up now or decide later?"
+- If they want to skip: the default HEARTBEAT.md template has sensible defaults
+- If they want custom items: note them for Phase 4
+
 Store all answers as variables for later phases:
 - `ASSISTANT_FULL_NAME` — full name (e.g., "Marta Hansen")
 - `ASSISTANT_NAME` — first name (e.g., "Marta")
@@ -91,7 +102,7 @@ If not found, check `~/.claude/plugins/cache/` as well.
 **Copy files from templates:**
 
 1. **Python files** (copy from `templates/python/`):
-   - `telegram_bot.py`, `bot_common.py`
+   - `telegram_bot.py`, `bot_common.py`, `heartbeat.py`
    - `runtime_support.py`, `conversation_logger.py`
    - `memory_updates.py`, `task_queue.py`
    - `requirements.txt`
@@ -102,7 +113,7 @@ If not found, check `~/.claude/plugins/cache/` as well.
    - `skills/*/SKILL.md` → `.claude/skills/*/SKILL.md`
 
 3. **Memory files** (copy from `templates/memory/`):
-   - `MEMORY.md`, `STATE.md`, `SUMMARY.md`, `HISTORY.md`, `ACTIVE_THREADS.md` → `memory/`
+   - `MEMORY.md`, `STATE.md`, `SUMMARY.md`, `HISTORY.md`, `ACTIVE_THREADS.md`, `HEARTBEAT.md` → `memory/`
 
 4. **Create empty files:**
    - `TASKS.md` — empty task list
@@ -169,6 +180,11 @@ Perform **find-and-replace** for ALL `[PLACEHOLDER]` values in the copied Python
 1. Find `CLAUDE_BIN = os.path.expanduser("~/.local/bin/claude")` → replace path with the detected Claude CLI path from Phase 0
 
 If OWNER_TELEGRAM_ID is still pending (user didn't have it yet), replace `[OWNER_TELEGRAM_ID]` with `0` and add a comment: `# TODO: Replace 0 with your Telegram user ID`
+
+### memory/HEARTBEAT.md
+If the user specified custom heartbeat items in Phase 1, edit `memory/HEARTBEAT.md` to reflect their choices. If they chose to decide later, leave the default template as-is.
+
+The heartbeat runs every 30 minutes. The assistant reads `HEARTBEAT.md`, checks each item, and sends a Telegram notification only if something needs attention. If the file is empty or deleted, heartbeat is disabled.
 
 ---
 
