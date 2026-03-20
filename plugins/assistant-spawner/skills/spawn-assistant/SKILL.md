@@ -159,6 +159,51 @@ Write as `SOUL.md` in the project root.
 
 Copy the contents of CLAUDE.md to AGENTS.md (steering sync).
 
+### Email Specialist Agent (only if email is enabled)
+
+The heartbeat system uses an email specialist agent for inbox triage. Generate `.claude/agents/email-specialist.md`:
+
+```markdown
+---
+name: email-specialist
+description: Handles email reading, classification, drafting, and sending for ASSISTANT_NAME.
+model: sonnet
+---
+
+# Email Specialist
+
+You are ASSISTANT_NAME's email specialist subagent. You handle all email operations for OWNER_NAME.
+
+## Your Job
+- Read and classify emails by priority (Tier 1: urgent, Tier 2: actionable, Tier 3: noise)
+- Draft replies in OWNER_NAME's voice (see email-learnings.md and .claude/rules/OWNER_NAME_LOWER-voice.md)
+- Archive obvious noise
+- Forward important items to OWNER_NAME via Telegram
+
+## Tools Available
+- Gmail API via `~/.config/google-accounts/` (account: EMAIL_ACCOUNT_KEY)
+- Email learnings: `email-learnings.md`
+- Voice reference: `.claude/rules/OWNER_NAME_LOWER-voice.md` (create after first corrections)
+- Contact context: `.claude/skills/OWNER_NAME_LOWER-voice/contacts.md` (create as you learn)
+
+## Rules
+- NEVER send an email without explicit approval from OWNER_NAME
+- When unsure about priority, escalate to OWNER_NAME
+- Keep Telegram reports brief and scannable
+- Log every send to email-learnings.md
+
+## Heartbeat Mode
+When invoked for heartbeat triage, you have a narrower scope:
+- ONLY check ASSISTANT_EMAIL inbox
+- Handle routine items autonomously (scheduling, info requests)
+- Escalate anything sensitive, financial, or ambiguous
+- Respond with HEARTBEAT_SKIP if nothing needs attention
+```
+
+Replace ASSISTANT_NAME, OWNER_NAME, OWNER_NAME_LOWER, EMAIL_ACCOUNT_KEY, and ASSISTANT_EMAIL with the actual values from Phase 1.
+
+If email is NOT enabled, skip this file. The bot has a fallback prompt that works without it.
+
 ---
 
 ## Phase 4: Configure Bot Files
@@ -190,7 +235,45 @@ Then perform **find-and-replace** for ALL `[PLACEHOLDER]` values using the ident
 
 If OWNER_TELEGRAM_ID is still pending (user didn't have it yet), replace `[OWNER_TELEGRAM_ID]` with `0` and add a comment: `# TODO: Replace 0 with your Telegram user ID`
 
-If ASSISTANT_EMAIL is empty, comment out email-related lines in the system prompt and heartbeat.
+### If email is NOT enabled:
+- In `telegram_bot.py`: comment out the `from watcher import HeartbeatWatcher` import and `watcher.run_loop()` task in `main()`
+- In `telegram_bot.py`: comment out the `HEARTBEAT_TRIAGE_PROMPT` and `run_heartbeat_triage` function, and the `/heartbeat` command handler
+- Remove `watcher.py` (not needed without email)
+- The system prompt already won't reference email if `[ASSISTANT_EMAIL]` was left empty
+
+### If email IS enabled — Heartbeat architecture:
+
+The heartbeat is a proactive email monitoring system that runs inside the Telegram bot process:
+
+```
+watcher.py (HeartbeatWatcher)
+  └─ Checks Gmail every 15 minutes via API (zero Claude tokens)
+  └─ If new unread emails found → enqueues "heartbeat_triage" task
+
+telegram_bot.py (run_heartbeat_triage)
+  └─ Runs Claude with email specialist prompt
+  └─ Claude triages inbox: handles routine, escalates important
+  └─ If noteworthy → sends summary to owner on Telegram
+  └─ If nothing → responds HEARTBEAT_SKIP (silent)
+```
+
+**Key files:**
+- `watcher.py` — lightweight Gmail poller (no Claude tokens used)
+- `telegram_bot.py` → `HEARTBEAT_TRIAGE_PROMPT` — what Claude does during triage
+- `.claude/agents/email-specialist.md` — system prompt for triage Claude session
+- `memory/.heartbeat-state.json` — persisted watcher state (last seen email IDs)
+
+**Configurable values in watcher.py:**
+- `CHECK_INTERVAL_SECONDS = 900` — how often to check (default: 15 min, minimum safe: 300/5min to avoid Gmail rate limits)
+
+**Configurable values in telegram_bot.py:**
+- `HEARTBEAT_MAX_AGE_HOURS = 24` — auto-reset heartbeat session after this many hours
+- `HEARTBEAT_SESSION_KEY` — session key for the heartbeat's Claude conversation
+
+**Prerequisites for heartbeat:**
+1. Google account must be authenticated: `python ~/.config/google-accounts/authenticate.py --account EMAIL_ACCOUNT_KEY --verify`
+2. The account must have Gmail API access enabled
+3. `~/.config/google-accounts/` must be on the Python path (watcher.py adds it automatically)
 
 ---
 
@@ -247,11 +330,15 @@ FILES:
 - [ ] CLAUDE.md exists and contains ASSISTANT_NAME
 - [ ] SOUL.md exists and contains ASSISTANT_NAME
 - [ ] AGENTS.md exists and matches CLAUDE.md
-- [ ] telegram_bot.py exists
+- [ ] telegram_bot.py exists and contains no [PLACEHOLDER] strings
 - [ ] bot_common.py exists
 - [ ] memory/MEMORY.md exists
 - [ ] .env exists
 - [ ] .gitignore exists
+
+EMAIL (if enabled):
+- [ ] .claude/agents/email-specialist.md exists and contains ASSISTANT_NAME
+- [ ] watcher.py exists and EMAIL_ACCOUNT_KEY is set (not placeholder)
 
 RUNTIME:
 - [ ] venv has telegram package: venv/bin/python -c "import telegram; print('OK')"
@@ -265,9 +352,24 @@ bot = Bot('TOKEN_HERE')
 me = asyncio.run(bot.get_me())
 print(f'Bot: @{me.username} — OK')
 "
+
+HEARTBEAT (if email is enabled):
+- [ ] Google account access works: venv/bin/python -c "
+import sys; sys.path.insert(0, str(__import__('pathlib').Path.home() / '.config/google-accounts'))
+from client import get_gmail_service
+gmail = get_gmail_service('EMAIL_ACCOUNT_KEY')
+result = gmail.users().messages().list(userId='me', q='is:unread in:inbox', maxResults=1).execute()
+count = result.get('resultSizeEstimate', 0)
+print(f'Gmail access OK — {count} unread')
+"
 ```
 
 Report each check as pass or fail with details on failures.
+
+**If the heartbeat Gmail check fails**, common causes:
+- Account not authenticated: run `python ~/.config/google-accounts/authenticate.py --account EMAIL_ACCOUNT_KEY --verify`
+- Gmail API not enabled in the Google Cloud project
+- Wrong account key — verify the key matches what's in `~/.config/google-accounts/`
 
 ---
 
