@@ -1,9 +1,8 @@
 """Shared cross-channel topic registry.
 
-Phase 3A scope:
-- persist a small topic registry to disk
-- create/update topics from relay events only
-- keep runtime behavior unchanged unless another component reads this file
+OPTIONAL: This module is NOT used by the base Telegram bot template.
+It tracks shared topics across channels when relay.py is in use.
+Only import this if you have set up cross-channel relay integration.
 """
 
 from __future__ import annotations
@@ -120,12 +119,12 @@ def _ensure_link(refs: list[dict], candidate: dict) -> None:
 
 
 def _build_summary(relay_entry: dict) -> str:
-    from_user = relay_entry.get("from_user") or "noen"
+    from_user = relay_entry.get("from_user") or "someone"
     question = _preview(relay_entry.get("message"))
     answer = _preview(relay_entry.get("answer"))
     if answer:
-        return f"{from_user} spurte Simon: {question} | Simon svarte: {answer}"
-    return f"{from_user} spurte Simon: {question}"
+        return f"{from_user} asked [OWNER_NAME]: {question} | [OWNER_NAME] answered: {answer}"
+    return f"{from_user} asked [OWNER_NAME]: {question}"
 
 
 def get_shared_topics(*, status: str | None = None) -> list[dict]:
@@ -173,7 +172,7 @@ def get_recent_shared_topics(*, limit: int = 10) -> list[dict]:
 def build_runtime_lines(topic: dict) -> list[str]:
     if not topic:
         return []
-    lines = [f"Linked Topic ID: {topic.get('id', 'ukjent')}"]
+    lines = [f"Linked Topic ID: {topic.get('id', 'unknown')}"]
     status = topic.get("status")
     if status:
         lines.append(f"Linked Topic Status: {status}")
@@ -242,8 +241,8 @@ def sync_topic_from_relay(
         from_user = relay_entry.get("from_user")
         if from_user and from_user not in topic["participants"]:
             topic["participants"].append(from_user)
-        if relay_entry.get("answer") and "Simon" not in topic["participants"]:
-            topic["participants"].append("Simon")
+        if relay_entry.get("answer") and "[OWNER_NAME]" not in topic["participants"]:
+            topic["participants"].append("[OWNER_NAME]")
 
         if relay_id and relay_id not in topic["relay_ids"]:
             topic["relay_ids"].append(relay_id)

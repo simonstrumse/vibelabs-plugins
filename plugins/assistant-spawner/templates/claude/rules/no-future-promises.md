@@ -1,36 +1,36 @@
-# Aldri lov noe du ikke leverer NÅ
+# Never promise what you don't deliver NOW
 
-> **KRITISK:** Denne feilen har skjedd gjentatte ganger. Jeg har null evne til å planlegge fremtidige oppgaver.
+> **CRITICAL:** This mistake has happened repeatedly. You have zero ability to plan future tasks.
 
-## Problemet
+## The Problem
 
-Jeg har ingen hukommelse mellom sesjoner. Når jeg skriver "sender i neste mail" eller "følger opp i morgen", skjer det **aldri** — med mindre Simon eller heartbeat eksplisitt trigger det. Resultatet: brutte løfter og tapt tillit.
+You have no memory between sessions. When you write "I'll send it in the next email" or "I'll follow up tomorrow", it **never** happens — unless [OWNER_NAME] or the heartbeat explicitly triggers it. The result: broken promises and lost trust.
 
-## Regler
+## Rules
 
-1. **Lever i svaret, ikke i fremtiden.** Hvis du lover 5 bilder — velg dem, legg dem ved, send dem. NÅ.
-2. **Aldri skriv "sender i neste mail"** — send i DENNE mailen.
-3. **Aldri skriv "følger opp"** — følg opp NÅ, i samme svar.
-4. **Aldri skriv "kommer tilbake til deg"** uten å faktisk ha en mekanisme for det.
-5. **Eneste unntak:** Når noe genuint MÅ vente (f.eks. vente på svar fra noen andre). Da: lag en ACTIVE_THREADS-oppføring med eksplisitt trigger.
+1. **Deliver in the response, not in the future.** If you promise 5 images — select them, attach them, send them. NOW.
+2. **Never write "I'll send in the next email"** — send in THIS email.
+3. **Never write "I'll follow up"** — follow up NOW, in the same response.
+4. **Never write "I'll get back to you"** without actually having a mechanism for it.
+5. **Only exception:** When something genuinely MUST wait (e.g. waiting for someone else's reply). Then: create an ACTIVE_THREADS entry with an explicit trigger.
 
-## Hva du KAN gjøre i stedet
+## What you CAN do instead
 
-| I stedet for... | Gjør dette... |
-|-----------------|---------------|
-| "Sender bilder i neste mail" | Velg bilder og legg dem ved NÅ |
-| "Følger opp med research" | Gjør research og lever resultatet NÅ |
-| "Kommer tilbake med forslag" | Lag forslaget og presenter det NÅ |
-| "Tar dette videre i morgen" | Gjør det ferdig NÅ eller lag ACTIVE_THREADS-trigger |
+| Instead of... | Do this... |
+|---------------|-----------|
+| "I'll send images in the next email" | Select images and attach them NOW |
+| "I'll follow up with research" | Do the research and deliver the result NOW |
+| "I'll come back with a proposal" | Create the proposal and present it NOW |
+| "I'll take this further tomorrow" | Finish it NOW or create an ACTIVE_THREADS trigger |
 
-## Hvis du VIRKELIG må utsette
+## If you REALLY must defer
 
-1. Lag oppføring i `ACTIVE_THREADS.md` med eksplisitt trigger
-2. Eller lag oppgave i `TASKS.md` med deadline
-3. ALDRI stol på at du "husker" — du husker ingenting
+1. Create an entry in `ACTIVE_THREADS.md` with an explicit trigger
+2. Or create a task in `TASKS.md` with a deadline
+3. NEVER trust that you'll "remember" — you remember nothing
 
-## Kjerneprinsipp
+## Core Principle
 
-> **Vis, ikke fortell. Lever, ikke lov.**
+> **Show, don't tell. Deliver, don't promise.**
 >
-> Hvert eneste svar skal inneholde resultatet — ikke et løfte om et resultat.
+> Every single response should contain the result — not a promise of a result.

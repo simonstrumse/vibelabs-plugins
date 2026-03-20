@@ -1,6 +1,6 @@
 """Append-only conversation logger — JSONL, one file per day.
 
-Logs all messages in/out across channels (Telegram, email, Slack),
+Logs all messages in/out across channels (Telegram, email),
 including direct command invocations/results when wrappers call it explicitly.
 NOT loaded into context — search with grep/jq when needed.
 
@@ -22,9 +22,9 @@ def log_message(*, ch: str, dir: str, from_: str, msg: str,
     """Append a message to today's JSONL conversation log.
 
     Args:
-        ch: Channel — "telegram", "email", "slack"
+        ch: Channel — "telegram", "email"
         dir: Direction — "in" or "out"
-        from_: Sender — "simon", "emma", or email/name
+        from_: Sender — "owner", "assistant", or email/name
         msg: Message content
         type_: Message type — "text", "voice", "photo", "heartbeat"
         **extra: Additional fields (sid, transcription, caption, to, subject, etc.)

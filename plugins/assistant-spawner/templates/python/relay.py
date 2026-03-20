@@ -1,7 +1,8 @@
 """Cross-channel relay queue — file-based, shared between Slack and Telegram bots.
 
-Allows Slack-Emma to forward questions to Simon on Telegram and get answers back.
-Also supports Telegram→Slack relays.
+OPTIONAL: This module is NOT used by the base Telegram bot template.
+It enables a Slack↔Telegram relay bridge when Slack integration is added.
+Only import this if you have set up a Slack bot alongside the Telegram bot.
 
 Storage: memory/.relay-queue.json
 Concurrency: fcntl.flock() for safe multi-process access.

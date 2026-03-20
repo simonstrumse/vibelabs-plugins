@@ -51,9 +51,17 @@ Ask these questions in **2-3 rounds**, not all at once. Wait for answers before 
 - If they don't have a Telegram bot yet: note this as pending for Phase 5
 
 Store all answers as variables for later phases:
-- `ASSISTANT_NAME`, `OWNER_NAME`, `PERSONALITY`, `DEFAULT_LANGUAGE`
-- `ASSISTANT_EMAIL` (may be empty)
-- `OWNER_TELEGRAM_ID` (may be pending)
+- `ASSISTANT_FULL_NAME` — full name (e.g., "Marta Hansen")
+- `ASSISTANT_NAME` — first name (e.g., "Marta")
+- `ASSISTANT_NAME_LOWER` — lowercase first name (e.g., "marta") — derived, not asked
+- `OWNER_FULL_NAME` — full name (e.g., "Erik Pedersen")
+- `OWNER_NAME` — first name (e.g., "Erik")
+- `OWNER_NAME_LOWER` — lowercase first name (e.g., "erik") — derived, not asked
+- `PERSONALITY` — personality description
+- `DEFAULT_LANGUAGE` — default language
+- `ASSISTANT_EMAIL` — email address (may be empty)
+- `EMAIL_ACCOUNT_KEY` — Google account key for email watcher (derived from assistant name + org, e.g., "marta-company"). Explain: "This maps to `~/.config/google-accounts/`. What key should the email watcher use?" Only ask if ASSISTANT_EMAIL was provided.
+- `OWNER_TELEGRAM_ID` — numeric Telegram user ID (may be pending)
 
 ---
 
@@ -90,8 +98,8 @@ If not found, check `~/.claude/plugins/cache/` as well.
 **Copy files from templates:**
 
 1. **Verbatim Python files** (copy without changes from `templates/python/`):
-   - `runtime_support.py`, `engine_config.py`, `conversation_logger.py`
-   - `memory_updates.py`, `task_queue.py`, `relay.py`, `shared_topics.py`
+   - `runtime_support.py`, `conversation_logger.py`
+   - `memory_updates.py`, `task_queue.py`
    - `requirements.txt`
 
 2. **Claude config files** (copy from `templates/claude/`):
@@ -143,7 +151,7 @@ Generate a SOUL.md that:
 - Has boundaries section
 - Has a "vibe" paragraph that captures the personality
 - Is written in DEFAULT_LANGUAGE
-- Does NOT copy Emma's soul — write something unique
+- Does NOT copy any existing assistant's soul — write something unique
 
 Write as `SOUL.md` in the project root.
 
@@ -157,22 +165,32 @@ Copy the contents of CLAUDE.md to AGENTS.md (steering sync).
 
 Copy `telegram_bot.py`, `bot_common.py`, and `watcher.py` from `templates/python/`.
 
-Then make these EXACT substitutions in the copied files:
+Then perform **find-and-replace** for ALL `[PLACEHOLDER]` values using the identity gathered in Phase 1:
 
-### telegram_bot.py
-1. Find `ALLOWED_CHAT_IDS = {462445799}` → replace `462445799` with OWNER_TELEGRAM_ID
-2. Find the `EA_SYSTEM_PROMPT` multiline string (starts around line 335) → rewrite it to match the new assistant's identity, name, and email accounts
-3. Find `HEARTBEAT_TRIAGE_PROMPT` → rewrite for new assistant, or comment out if no email
-4. Find `heartbeat:emma-vibelabs` → replace with `heartbeat:<account_key>` or comment out
+| Placeholder | Replace with | Used in |
+|---|---|---|
+| `[OWNER_FULL_NAME]` | OWNER_FULL_NAME | system prompt |
+| `[OWNER_NAME]` | OWNER_NAME | system prompt, logging |
+| `[OWNER_NAME_LOWER]` | OWNER_NAME_LOWER | logger names, paths |
+| `[ASSISTANT_FULL_NAME]` | ASSISTANT_FULL_NAME | system prompt, summary |
+| `[ASSISTANT_NAME]` | ASSISTANT_NAME | system prompt, logging |
+| `[ASSISTANT_NAME_LOWER]` | ASSISTANT_NAME_LOWER | logger namespace, paths |
+| `[OWNER_TELEGRAM_ID]` | OWNER_TELEGRAM_ID | ALLOWED_CHAT_IDS |
+| `[ASSISTANT_EMAIL]` | ASSISTANT_EMAIL | heartbeat, system prompt |
+| `[EMAIL_ACCOUNT_KEY]` | EMAIL_ACCOUNT_KEY | watcher, heartbeat session |
+| `[DEFAULT_LANGUAGE]` | DEFAULT_LANGUAGE | system prompt, rules |
+
+**Apply these replacements across ALL copied template files** — Python files, Claude rules, skills, and commands.
 
 ### bot_common.py
 1. Find `CLAUDE_BIN = os.path.expanduser("~/.local/bin/claude")` → replace path with the detected Claude CLI path from Phase 0
-2. Find `CODEX_BIN = "/opt/homebrew/bin/codex"` → replace with detected codex path, or set to `None` if not found
 
 ### watcher.py (only if email is enabled)
-1. Find `'emma-vibelabs'` → replace with the email account key
+1. Verify `[EMAIL_ACCOUNT_KEY]` was replaced with the actual email account key
 
-If OWNER_TELEGRAM_ID is still pending (user didn't have it yet), leave `ALLOWED_CHAT_IDS = {0}` and add a comment: `# TODO: Replace 0 with your Telegram user ID`
+If OWNER_TELEGRAM_ID is still pending (user didn't have it yet), replace `[OWNER_TELEGRAM_ID]` with `0` and add a comment: `# TODO: Replace 0 with your Telegram user ID`
+
+If ASSISTANT_EMAIL is empty, comment out email-related lines in the system prompt and heartbeat.
 
 ---
 
@@ -183,10 +201,6 @@ Generate a `.env` file:
 ```
 # Bot tokens — get these from the respective platforms
 TELEGRAM_BOT_TOKEN=
-
-# Uncomment if using Slack:
-# SLACK_BOT_TOKEN=
-# SLACK_APP_TOKEN=
 ```
 
 Ask the user: **"Do you have your Telegram bot token? If not, here's how to get one:"**
@@ -253,7 +267,7 @@ print(f'Bot: @{me.username} — OK')
 "
 ```
 
-Report each check as ✓ or ✗ with details on failures.
+Report each check as pass or fail with details on failures.
 
 ---
 
@@ -328,28 +342,27 @@ python telegram_bot.py
 Print a clear summary:
 
 ```
-✅ Assistant "[ASSISTANT_NAME]" is ready!
+Assistant "[ASSISTANT_NAME]" is ready!
 
 Setup complete:
-  ✓ Project directory: [PATH]
-  ✓ Identity: CLAUDE.md, SOUL.md
-  ✓ Telegram bot: telegram_bot.py
-  ✓ Memory system: memory/
-  ✓ Python environment: venv/
-  [✓/✗] Bot token: [configured/pending]
-  [✓/✗] Service: [running/not installed]
+  - Project directory: [PATH]
+  - Identity: CLAUDE.md, SOUL.md
+  - Telegram bot: telegram_bot.py
+  - Memory system: memory/
+  - Python environment: venv/
+  - Bot token: [configured/pending]
+  - Service: [running/not installed]
 
 Next steps:
-  [If token pending] → Get bot token from @BotFather and add to .env
-  [If service not installed] → Install the launchd/systemd service
-  [If email desired] → Run /add-email to set up email integration
-  [If Slack desired] → Run /add-slack to set up Slack integration
+  [If token pending] Get bot token from @BotFather and add to .env
+  [If service not installed] Install the launchd/systemd service
+  [If email desired] Set up email integration with google-accounts
 
 Test your assistant:
   cd [PATH]
   source venv/bin/activate  # or venv\Scripts\activate on Windows
   python telegram_bot.py
-  → Then message your bot on Telegram!
+  Then message your bot on Telegram!
 ```
 
 ---

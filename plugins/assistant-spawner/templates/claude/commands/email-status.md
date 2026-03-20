@@ -4,7 +4,7 @@ Quick check of current inbox state without processing.
 
 ## What This Does
 
-Provides a snapshot of Simon's inbox:
+Provides a snapshot of [OWNER_NAME]'s inbox:
 - Total emails in INBOX
 - Unread count
 - Top senders
@@ -27,17 +27,17 @@ Or ask: "How's my inbox?", "Email status", "What's in my inbox?"
 **Current state:** X emails in inbox (Y unread)
 
 ### Top Senders (last 7 days)
-1. christina@startuplab.no - 5 emails
-2. cwb@norscanas.no - 3 emails
+1. contact1@example.com - 5 emails
+2. contact2@example.com - 3 emails
 ...
 
 ### Oldest Unanswered (from VIPs)
-- 3 days: Christina - RE: Startup event
-- 2 days: Fredrik - Project update
+- 3 days: Contact 1 - RE: Meeting request
+- 2 days: Contact 2 - Project update
 
 ### Urgent Items
-- Stripe payment failure: Easypick AS (3 failures)
-- Domain expiring: vibelabs.no (7 days)
+- Stripe payment failure: Vendor Inc (3 failures)
+- Domain expiring: example.com (7 days)
 
 ### Quick Archive Candidates
 - 12 newsletters

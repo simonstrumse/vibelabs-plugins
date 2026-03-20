@@ -1,4 +1,4 @@
-"""Shared runtime prompt and startup integrity helpers for Emma bots."""
+"""Shared runtime prompt and startup integrity helpers for assistant bots."""
 
 from __future__ import annotations
 
@@ -12,15 +12,10 @@ PROJECT_DIR = Path(__file__).resolve().parent
 
 STEERING_PAIRS = (
     (PROJECT_DIR / "CLAUDE.md", PROJECT_DIR / "AGENTS.md"),
-    (
-        PROJECT_DIR / "specialists" / "slack" / "CLAUDE.md",
-        PROJECT_DIR / "specialists" / "slack" / "AGENTS.md",
-    ),
 )
 
 REQUIRED_SOURCE_FILES = (
     PROJECT_DIR / "CLAUDE.md",
-    PROJECT_DIR / "specialists" / "slack" / "CLAUDE.md",
     PROJECT_DIR / "SOUL.md",
 )
 
@@ -44,7 +39,7 @@ BOOTSTRAP_CONTENT = {
         "> Update this when something important is current, time-sensitive, or likely to go stale.\n"
     ),
     PROJECT_DIR / "memory" / "SUMMARY.md": (
-        "# Emma Brekke — Totaloppsummering\n\n"
+        "# [ASSISTANT_FULL_NAME] — Summary\n\n"
         "> Background summary. This may lag behind `memory/STATE.md`.\n"
     ),
 }

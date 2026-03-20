@@ -1,6 +1,6 @@
 # /draft-reply
 
-Draft a reply to a specific email in Simon's voice with validation and approval flow.
+Draft a reply to a specific email in [OWNER_NAME]'s voice with validation and approval flow.
 
 ## Usage
 
@@ -8,11 +8,11 @@ Draft a reply to a specific email in Simon's voice with validation and approval 
 /draft-reply $ARGUMENTS
 ```
 
-Or: "Draft a reply to Christina's email", "Help me respond to the Startuplab email"
+Or: "Draft a reply to that email", "Help me respond to the meeting request"
 
 ## Arguments
 
-- `[uid]` or `[search query]` — Target email (e.g., `501234` or `from:christina@startuplab.no`)
+- `[uid]` or `[search query]` — Target email (e.g., `501234` or `from:contact@example.com`)
 - `--short` — Force ultra-brief style
 - `--formal` — Force formal style
 - `--english` / `--norwegian` — Force language

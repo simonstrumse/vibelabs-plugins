@@ -16,14 +16,14 @@ Safe inbox cleaning with preview and approval. Archives only obvious noise.
 /clean-inbox
 ```
 
-Or ask: "Clean my inbox", "Rydd innboks", "Archive noise", "Sjekk mail"
+Or ask: "Clean my inbox", "Archive noise", "Check mail"
 
 ## Safety Rules
 
 - **UNCERTAIN = KEEP** — only archive 100% certain noise
-- Never archives VIP contacts (see `.claude/skills/simon-voice/contacts.md`)
+- Never archives VIP contacts (see `.claude/skills/[OWNER_NAME_LOWER]-voice/contacts.md`)
 - Never archives payment failures, security alerts, or government emails
-- Always shows preview before archiving — requires explicit "yes"/"kjør" to proceed
+- Always shows preview before archiving — requires explicit approval to proceed
 - Everything archived is logged for review
 
 ## Difference from /archive-noise

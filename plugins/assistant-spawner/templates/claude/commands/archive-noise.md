@@ -22,10 +22,10 @@ Or ask: "Clean up my inbox", "Archive the noise", "Quick inbox cleanup"
 ## Safety Checks
 
 Before archiving, this skill:
-1. **Never archives VIP contacts** (see `.claude/skills/simon-voice/contacts.md`)
+1. **Never archives VIP contacts** (see `.claude/skills/[OWNER_NAME_LOWER]-voice/contacts.md`)
 2. **Never archives payment failures** (Stripe, billing)
 3. **Never archives security alerts**
-4. **Never archives government emails** (.no official domains)
+4. **Never archives government emails** (official domains)
 5. **Shows what will be archived** before doing it
 
 ## Output Format

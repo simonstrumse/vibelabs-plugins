@@ -1,7 +1,7 @@
 {
   "name": "assistant-spawner",
-  "description": "Spawn a new AI executive assistant with Telegram bot, heartbeat, and memory system. Guided conversational setup via /spawn-assistant.",
-  "version": "1.0.0",
+  "description": "Spawn a new AI executive assistant with Telegram bot, heartbeat, and memory system. Guided setup via /spawn-assistant. Scrub leaked PII from existing deployments via /scrub-pii.",
+  "version": "1.0.1",
   "author": {
     "name": "Simon Strumse"
   },

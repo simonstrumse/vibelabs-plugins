@@ -3,7 +3,6 @@
 
 import asyncio
 import functools
-import glob
 import json
 import logging
 import os
@@ -39,27 +38,13 @@ from bot_common import (
     dbg,
 )
 from conversation_logger import log_message
-from engine_config import (
-    ENGINE_CLAUDE,
-    ENGINE_CODEX,
-    get_engine_state,
-    set_engine_state,
-)
 from task_queue import TaskQueue
 from watcher import HeartbeatWatcher
-from relay import (
-    get_relays, mark_forwarded, mark_answered, find_relay_by_prefix,
-    cleanup_old as relay_cleanup,
-)
 from runtime_support import (
     build_runtime_context,
     compose_system_prompt,
     inject_runtime_context,
     prepare_runtime_environment,
-)
-from shared_topics import (
-    find_shared_topic_by_prefix,
-    get_recent_shared_topics,
 )
 
 # ---------------------------------------------------------------------------
@@ -71,7 +56,7 @@ if not BOT_TOKEN:
         "TELEGRAM_BOT_TOKEN environment variable is required. "
         "Set it before starting the bot."
     )
-ALLOWED_CHAT_IDS = {462445799}  # Simon's Telegram user ID
+ALLOWED_CHAT_IDS = {[OWNER_TELEGRAM_ID]}  # Owner's Telegram user ID
 ACTIVE_PLAN_FILE = os.path.join(PROJECT_DIR, ".claude", "plans", "active-telegram-plan.md")
 CLAUDE_PLANS_DIR = os.path.expanduser("~/.claude/plans")
 
@@ -92,37 +77,11 @@ _active_procs: dict[int, asyncio.subprocess.Process] = {}
 # Track last known token usage per session key for /context
 _last_usage: dict[str, dict] = {}
 
-# Track last known rate-limit windows per session key for /usage (Codex)
-_last_rate_limits: dict[str, dict] = {}
-
 # Track last failed request per chat for /retry
 _last_failed_request: dict[int, dict] = {}
 
 CLAUDE_USAGE_SCRIPT = os.path.join(
     PROJECT_DIR, "scripts", "fetch_claude_usage_windows.swift")
-CODEX_SESSIONS_GLOB = os.path.expanduser("~/.codex/sessions/*/*/*/*.jsonl")
-GEMINI3_PROBE_STATE_FILE = os.path.join(
-    PROJECT_DIR, "memory", ".gemini3-probe-state.json")
-GEMINI3_PROBE_INTERVAL_SECONDS = 3600  # hourly
-GEMINI3_PROBE_STARTUP_DELAY_SECONDS = 30
-GEMINI3_PROBE_MODEL = "gemini-3-pro-image-preview"
-GEMINI3_PROBE_LOCATION = "global"
-
-
-def _engine_usage_key(chat_id: int, engine: str) -> str:
-    return f"{_session_key(chat_id)}:{engine}"
-
-
-def _resolve_engine_model(*, model_override: str | None = None,
-                          claude_only_override: bool = False) -> tuple[str, str | None]:
-    state = get_engine_state()
-    engine = state["engine"]
-    engine_model = state["models"].get(engine)
-    if model_override is None:
-        return engine, engine_model
-    if claude_only_override and engine != ENGINE_CLAUDE:
-        return engine, engine_model
-    return engine, model_override
 
 
 def _is_engine_failure(text: str) -> bool:
@@ -130,12 +89,8 @@ def _is_engine_failure(text: str) -> bool:
         return False
     checks = (
         "Error: Claude binary not found",
-        "Error: Codex binary not found",
         "Claude timed out",
-        "Codex timed out",
-        "Codex failed with code",
         "Something went wrong. Check the logs or try again.",
-        "unsupported assistant engine",
     )
     return any(marker in text for marker in checks)
 
@@ -143,11 +98,9 @@ def _is_engine_failure(text: str) -> bool:
 def _with_failure_guidance(text: str) -> str:
     return (
         text.rstrip()
-        + "\n\nPrøv dette:\n"
+        + "\n\nTry this:\n"
         + "/retry\n"
-        + "/engine claude\n"
-        + "/engine codex\n"
-        + "/engine <engine> <model>"
+        + "/new"
     )
 
 
@@ -163,7 +116,7 @@ def _log_command_request(update: Update, *, command: str | None = None) -> None:
     log_message(
         ch="telegram",
         dir="in",
-        from_="simon",
+        from_="owner",
         msg=text,
         type_="command",
         command=command or _command_name(text),
@@ -175,7 +128,7 @@ async def _reply_command(update: Update, text: str, *, command: str) -> None:
     log_message(
         ch="telegram",
         dir="out",
-        from_="emma",
+        from_="assistant",
         msg=text,
         type_="command_result",
         command=command,
@@ -287,14 +240,14 @@ def _peek_heartbeat_context(chat_id: int) -> str | None:
     # Build context from all pending heartbeats
     parts = []
     for entry in pending:
-        ts = entry.get("timestamp", "ukjent")
+        ts = entry.get("timestamp", "unknown")
         msg = entry.get("message", "")
-        parts.append(f"[Heartbeat kl {ts}]\n{msg}")
+        parts.append(f"[Heartbeat at {ts}]\n{msg}")
 
     header = (
-        "[HEARTBEAT-KONTEKST: Emma sendte følgende heartbeat-oppsummering(er) "
-        "til Simon. Simons neste melding kan være et svar på noe her. "
-        "Bruk kun hvis relevant.]"
+        "[HEARTBEAT CONTEXT: [ASSISTANT_NAME] sent the following heartbeat summary(ies) "
+        "to [OWNER_NAME]. [OWNER_NAME]'s next message may be a reply to something here. "
+        "Use only if relevant.]"
     )
     return header + "\n\n" + "\n\n---\n\n".join(parts)
 
@@ -333,36 +286,32 @@ def _mark_heartbeats_consumed(chat_id: int) -> None:
 # CLAUDE.md (loaded automatically from the project dir) provides API docs and
 # tools. This prompt tells Claude *how to act* as an executive assistant.
 EA_SYSTEM_PROMPT = compose_system_prompt("""\
-You ARE Emma Brekke, Simon Souyris Strumse's executive assistant. \
-You speak as Emma — first person, never third person. Operating via Telegram.
+You ARE [ASSISTANT_FULL_NAME], [OWNER_FULL_NAME]'s executive assistant. \
+You speak as [ASSISTANT_NAME] — first person, never third person. Operating via Telegram.
 
 SYSTEMS YOU MANAGE:
-- Email: emma@vibelabs.no (your account), simonstrumse@gmail.com, \
-simon@vibelabs.no, hello@vibelabs.no, oslo@seaexperience.no (read-only unless Simon asks)
+- Email: [ASSISTANT_EMAIL] (your account)
 - Calendar, Drive, Docs, Sheets, Contacts, Tasks (via GoogleServices)
-- Slack: Emma has her own Slack bot (slack_bot.py, Socket Mode). \
-Default: post to Slack through the bot. Only use Chrome for Slack if Simon explicitly asks.
 - Telegram: this chat (telegram_bot.py)
-- Relay: Slack↔Telegram bridge (relay.py) — forward questions between channels.
 
 PERSONALITY:
-- Communicate like Simon: direct, brief, Norwegian by default, English when needed.
+- Communicate like [OWNER_NAME]: direct, brief, [DEFAULT_LANGUAGE] by default, English when needed.
 - Keep Telegram messages short. Use bullet points, not paragraphs.
 - Don't explain what you're doing — just do it and report results.
-- When drafting emails, use Simon's voice (see email-learnings.md and CLAUDE.md).
+- When drafting emails, use [OWNER_NAME]'s voice (see email-learnings.md and CLAUDE.md).
 
 EMAIL DELEGATION:
 - ALL email work goes through the email specialist subagent.
-- When Simon asks about email, inbox, drafts, or anything email-related: \
+- When [OWNER_NAME] asks about email, inbox, drafts, or anything email-related: \
 delegate to the email specialist using the Task tool (subagent_type: "email-specialist").
 - This includes: reading emails, processing inbox, drafting replies, archiving, \
 sending, and any email research.
 - DO NOT read, draft, or send emails yourself — always delegate.
-- Forward the specialist's report to Simon as-is (it's already Telegram-formatted).
+- Forward the specialist's report to [OWNER_NAME] as-is (it's already Telegram-formatted).
 
 AUTONOMY RULES:
 - You CAN: check calendar, search, create drafts, update TASKS.md, \
-check on existing tasks, research, browse the web, manage files, post to Slack.
+check on existing tasks, research, browse the web, manage files.
 - You MUST ASK before: accepting invitations, deleting anything, \
 making purchases, responding to financial/legal matters.
 
@@ -376,7 +325,7 @@ PERSISTENT MEMORY:
 - When you learn something important, write it to memory/MEMORY.md immediately.
 - Keep MEMORY.md concise and durable. Put time-sensitive operational context in memory/STATE.md.
 
-CONVERSATION HISTORY (3-lag system):
+CONVERSATION HISTORY (3-layer system):
 - For quick current context: read memory/STATE.md first
 - For background context: read memory/SUMMARY.md if relevant
 - For a specific day: read memory/summaries/YYYY-MM-DD.md
@@ -447,7 +396,7 @@ def _load_email_specialist_prompt() -> str:
     except (FileNotFoundError, OSError) as e:
         log.warning("Could not load email specialist agent file: %s — using fallback", e)
         return (
-            "You are Emma Brekke, Simon's executive assistant handling email triage. "
+            "You are [ASSISTANT_FULL_NAME], [OWNER_NAME]'s executive assistant handling email triage. "
             "Read CLAUDE.md and email-learnings.md for context. "
             "Check memory/ACTIVE_THREADS.md for thread-specific instructions and "
             "memory/STATE.md for current operational context."
@@ -537,24 +486,24 @@ async def _safe_send_photo(bot, chat_id: int, photo_path: str,
 def _parse_reset_time(value) -> str:
     """Format reset timestamp to local short form."""
     if value is None:
-        return "ukjent"
+        return "unknown"
     try:
         if isinstance(value, (int, float)):
             dt = datetime.fromtimestamp(float(value))
         elif isinstance(value, str):
             raw = value.strip()
             if not raw:
-                return "ukjent"
+                return "unknown"
             if raw.endswith("Z"):
                 raw = raw[:-1] + "+00:00"
             dt = datetime.fromisoformat(raw)
             if dt.tzinfo is not None:
                 dt = dt.astimezone()
         else:
-            return "ukjent"
+            return "unknown"
         return dt.strftime("%a %H:%M")
     except (TypeError, ValueError, OSError):
-        return "ukjent"
+        return "unknown"
 
 
 def _format_window_line(label: str, window: dict | None) -> str | None:
@@ -568,13 +517,13 @@ def _format_window_line(label: str, window: dict | None) -> str | None:
         return None
     left = max(0.0, 100.0 - used)
     reset_at = _parse_reset_time(window.get("resets_at"))
-    return f"{label}: {used:.0f}% brukt · {left:.0f}% igjen · reset {reset_at}"
+    return f"{label}: {used:.0f}% used · {left:.0f}% remaining · resets {reset_at}"
 
 
 async def _fetch_claude_usage_windows() -> tuple[dict | None, str | None]:
     """Fetch Claude 5h/7d usage windows via local Swift helper."""
     if not os.path.isfile(CLAUDE_USAGE_SCRIPT):
-        return None, "usage-script mangler"
+        return None, "usage script missing"
 
     try:
         proc = await asyncio.create_subprocess_exec(
@@ -584,16 +533,16 @@ async def _fetch_claude_usage_windows() -> tuple[dict | None, str | None]:
             stderr=asyncio.subprocess.PIPE,
         )
     except FileNotFoundError:
-        return None, "swift ikke installert"
+        return None, "swift not installed"
     except OSError:
-        return None, "kunne ikke starte usage-script"
+        return None, "could not start usage script"
 
     try:
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=20)
     except asyncio.TimeoutError:
         proc.kill()
         await proc.wait()
-        return None, "timeout ved henting av usage"
+        return None, "timeout fetching usage"
 
     out = stdout.decode("utf-8", errors="replace").strip()
     err = stderr.decode("utf-8", errors="replace").strip()
@@ -603,51 +552,16 @@ async def _fetch_claude_usage_windows() -> tuple[dict | None, str | None]:
             return None, err.splitlines()[-1][:140]
         if out:
             return None, out.splitlines()[-1][:140]
-        return None, "ukjent feil fra usage-script"
+        return None, "unknown error from usage script"
 
     try:
         data = json.loads(out)
     except json.JSONDecodeError:
-        return None, "ugyldig usage-format"
+        return None, "invalid usage format"
 
     if not isinstance(data, dict):
-        return None, "ugyldig usage-format"
+        return None, "invalid usage format"
     return data, None
-
-
-def _load_gemini3_probe_state() -> dict:
-    """Load persisted Gemini 3 probe state."""
-    default = {
-        "enabled": True,
-        "stop_after_success": True,
-        "last_status": None,
-        "last_http_status": None,
-        "last_checked_at": None,
-        "last_message": None,
-        "last_notified_status": None,
-    }
-    try:
-        with open(GEMINI3_PROBE_STATE_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if not isinstance(data, dict):
-            return default
-        out = default.copy()
-        out.update(data)
-        return out
-    except (FileNotFoundError, OSError, json.JSONDecodeError):
-        return default
-
-
-def _save_gemini3_probe_state(state: dict) -> None:
-    """Persist Gemini 3 probe state."""
-    tmp = GEMINI3_PROBE_STATE_FILE + ".tmp"
-    try:
-        os.makedirs(os.path.dirname(GEMINI3_PROBE_STATE_FILE), exist_ok=True)
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(state, f, ensure_ascii=False, indent=2)
-        os.replace(tmp, GEMINI3_PROBE_STATE_FILE)
-    except OSError as e:
-        log.warning("Gemini probe: failed to save state: %s", e)
 
 
 async def _run_cmd_with_timeout(
@@ -682,200 +596,6 @@ async def _run_cmd_with_timeout(
     return proc.returncode or 0, stdout, stderr
 
 
-async def _run_gemini3_image_probe_once() -> tuple[str, int | None, str]:
-    """Probe Gemini 3 image preview availability via Vertex REST."""
-    code, project_out, project_err = await _run_cmd_with_timeout(
-        "gcloud", "config", "get-value", "project", timeout=15)
-    project_id = project_out.strip()
-    if code != 0 or not project_id:
-        msg = project_err or project_out or "kunne ikke lese aktivt gcloud-prosjekt"
-        return "probe_error", None, msg[:220]
-
-    code, token_out, token_err = await _run_cmd_with_timeout(
-        "gcloud", "auth", "print-access-token", timeout=20)
-    token = token_out.strip()
-    if code != 0 or not token:
-        msg = token_err or token_out or "kunne ikke hente OAuth-token"
-        return "probe_error", None, msg[:220]
-
-    url = (
-        "https://aiplatform.googleapis.com/v1/projects/"
-        f"{project_id}/locations/{GEMINI3_PROBE_LOCATION}/publishers/google/models/"
-        f"{GEMINI3_PROBE_MODEL}:generateContent"
-    )
-    payload = {
-        "contents": [{
-            "role": "user",
-            "parts": [{"text": "Generate a tiny blue square test image."}],
-        }],
-        "generationConfig": {"responseModalities": ["IMAGE"]},
-    }
-
-    resp_path = os.path.join(
-        "/tmp", f"gemini3_probe_response_{int(time.time())}.json")
-    try:
-        code, http_status_text, curl_err = await _run_cmd_with_timeout(
-            "curl",
-            "-sS",
-            "-o",
-            resp_path,
-            "-w",
-            "%{http_code}",
-            "-X",
-            "POST",
-            url,
-            "-H",
-            f"Authorization: Bearer {token}",
-            "-H",
-            "Content-Type: application/json",
-            "--data-binary",
-            "@-",
-            timeout=45,
-            stdin_data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-        )
-    finally:
-        pass
-
-    if code != 0:
-        return "probe_error", None, (curl_err or "curl-feil")[:220]
-
-    try:
-        http_status = int(http_status_text.strip() or "0")
-    except ValueError:
-        return "probe_error", None, f"ugyldig HTTP-status: {http_status_text[:80]}"
-
-    body_text = ""
-    try:
-        with open(resp_path, "r", encoding="utf-8") as f:
-            body_text = f.read(2000)
-    except OSError:
-        body_text = ""
-    finally:
-        try:
-            os.remove(resp_path)
-        except OSError:
-            pass
-
-    if http_status == 200:
-        return "ok", http_status, "200 OK"
-
-    err_status = ""
-    err_msg = ""
-    if body_text:
-        try:
-            body = json.loads(body_text)
-            if isinstance(body, dict):
-                err = body.get("error")
-                if isinstance(err, dict):
-                    err_status = str(err.get("status") or "").strip()
-                    err_msg = str(err.get("message") or "").strip()
-        except json.JSONDecodeError:
-            pass
-
-    status_key = (err_status or f"HTTP_{http_status}").lower()
-    msg = (err_msg or err_status or f"HTTP {http_status}")[:220]
-    return status_key, http_status, msg
-
-
-def _format_gemini_probe_notification(
-    status_key: str,
-    http_status: int | None,
-    detail: str,
-    checked_at: str,
-    disabled: bool,
-) -> str:
-    """Build a short Telegram notification for Gemini probe status."""
-    label = status_key.upper()
-    http_part = f"HTTP {http_status}" if http_status is not None else "HTTP ?"
-    lines = [
-        "🔎 *Gemini 3 probe (hourly)*",
-        f"Model: `{GEMINI3_PROBE_MODEL}` ({GEMINI3_PROBE_LOCATION})",
-        f"Status: `{label}` · {http_part}",
-        f"Detalj: {detail}",
-        f"Sjekket: {checked_at}",
-    ]
-    if disabled:
-        lines.append("Auto-probe stoppet etter grønn status.")
-    return "\n".join(lines)
-
-
-async def _gemini3_probe_loop(bot) -> None:
-    """Hourly probe for Gemini 3 image preview with status-change alerts."""
-    await asyncio.sleep(GEMINI3_PROBE_STARTUP_DELAY_SECONDS)
-    log.info("Gemini probe: started (interval=%ds)", GEMINI3_PROBE_INTERVAL_SECONDS)
-
-    while True:
-        try:
-            state = _load_gemini3_probe_state()
-            if not state.get("enabled", True):
-                await asyncio.sleep(GEMINI3_PROBE_INTERVAL_SECONDS)
-                continue
-
-            status_key, http_status, detail = await _run_gemini3_image_probe_once()
-            checked_at = datetime.now().isoformat(timespec="seconds")
-
-            state["last_status"] = status_key
-            state["last_http_status"] = http_status
-            state["last_message"] = detail
-            state["last_checked_at"] = checked_at
-
-            last_notified = state.get("last_notified_status")
-            notify = status_key != last_notified
-            disabled = False
-
-            if status_key == "ok" and state.get("stop_after_success", True):
-                state["enabled"] = False
-                disabled = True
-
-            _save_gemini3_probe_state(state)
-
-            if notify:
-                text = _format_gemini_probe_notification(
-                    status_key=status_key,
-                    http_status=http_status,
-                    detail=detail,
-                    checked_at=checked_at,
-                    disabled=disabled,
-                )
-                for chat_id in ALLOWED_CHAT_IDS:
-                    await _safe_send(bot, chat_id, text)
-                    log.info("Gemini probe: notified chat %s (%s)", chat_id, status_key)
-                state["last_notified_status"] = status_key
-                _save_gemini3_probe_state(state)
-        except Exception as e:
-            log.warning("Gemini probe: loop error: %s", e)
-
-        await asyncio.sleep(GEMINI3_PROBE_INTERVAL_SECONDS)
-
-
-def _format_codex_usage_lines(rate_limits: dict | None) -> list[str]:
-    """Render Codex primary/secondary rate-limit windows."""
-    if not isinstance(rate_limits, dict):
-        return ["Ingen Codex usage-data ennå. Kjør en Codex-melding først."]
-
-    lines: list[str] = []
-    primary = rate_limits.get("primary")
-    secondary = rate_limits.get("secondary")
-
-    if isinstance(primary, dict):
-        line = _format_window_line("5h", {
-            "utilization": primary.get("used_percent"),
-            "resets_at": primary.get("resets_at"),
-        })
-        if line:
-            lines.append(line)
-
-    if isinstance(secondary, dict):
-        line = _format_window_line("7d", {
-            "utilization": secondary.get("used_percent"),
-            "resets_at": secondary.get("resets_at"),
-        })
-        if line:
-            lines.append(line)
-
-    return lines or ["Ingen Codex usage-data ennå. Kjør en Codex-melding først."]
-
-
 def _read_last_lines(path: str, max_lines: int = 2500) -> list[str]:
     """Read up to max_lines from end of file without loading the full file."""
     try:
@@ -898,42 +618,6 @@ def _read_last_lines(path: str, max_lines: int = 2500) -> list[str]:
             return all_lines
     except OSError:
         return []
-
-
-def _fetch_codex_rate_limits_from_sessions() -> tuple[dict | None, str | None]:
-    """Fetch latest Codex rate_limits from local session logs."""
-    try:
-        files = glob.glob(CODEX_SESSIONS_GLOB)
-    except OSError:
-        return None, "kunne ikke lese Codex session-mappe"
-    if not files:
-        return None, "fant ingen Codex sessions"
-
-    try:
-        files.sort(key=os.path.getmtime, reverse=True)
-    except OSError:
-        files.sort(reverse=True)
-
-    for path in files[:10]:
-        for line in reversed(_read_last_lines(path, max_lines=2500)):
-            if "\"type\":\"event_msg\"" not in line:
-                continue
-            if "\"token_count\"" not in line or "\"rate_limits\"" not in line:
-                continue
-            try:
-                evt = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            payload = evt.get("payload")
-            if not isinstance(payload, dict):
-                continue
-            if payload.get("type") != "token_count":
-                continue
-            rate_limits = payload.get("rate_limits")
-            if isinstance(rate_limits, dict):
-                return rate_limits, None
-
-    return None, "fant ingen token_count/rate_limits i nylige Codex sessions"
 
 
 # ---------------------------------------------------------------------------
@@ -971,17 +655,16 @@ async def _queue_and_process(chat_id: int, prompt: str, update: Update,
             log.info("Batched %d messages for chat %s", len(queued), chat_id)
 
         # Log incoming message(s) to conversation log
-        log_message(ch="telegram", dir="in", from_="simon", msg=combined)
+        log_message(ch="telegram", dir="in", from_="owner", msg=combined)
 
-        engine, resolved_model = _resolve_engine_model(model_override=model)
-        session_id, is_new = sessions.get_session(key, engine=engine)
+        session_id, is_new = sessions.get_session(key)
         sessions.touch_activity(key)  # Mark active during processing (not just on message receive)
         sid_preview = (session_id[:8] if session_id else "new")
-        log.info("Processing for %s (%s session %s, %s): %s",
-                 chat_id, engine, sid_preview, "new" if is_new else "resume",
+        log.info("Processing for %s (session %s, %s): %s",
+                 chat_id, sid_preview, "new" if is_new else "resume",
                  combined[:100])
-        dbg.info("MSG_IN | chat=%s | engine=%s | session=%s (%s) | msg=%s",
-                 chat_id, engine, sid_preview, "new" if is_new else "resume",
+        dbg.info("MSG_IN | chat=%s | session=%s (%s) | msg=%s",
+                 chat_id, sid_preview, "new" if is_new else "resume",
                  combined[:300])
 
         bot = context.bot
@@ -1043,42 +726,42 @@ async def _queue_and_process(chat_id: int, prompt: str, update: Update,
             if now - _last_edit < 1.0:  # Slower rate for status updates
                 return
 
-            # Translate technical tool names to Emma-style status
-            _EMMA_STATUS = {
-                "Running: Bash": "Fikser litt greier",
-                "Running: Read": "Blar gjennom noen filer",
-                "Running: Write": "Skriver ned noe",
-                "Running: Edit": "Justerer litt",
-                "Running: Grep": "Graver i arkivet",
-                "Running: Glob": "Leter rundt",
-                "Running: WebFetch": "Henter noe fra nettet",
-                "Running: WebSearch": "Googler litt",
-                "Running: TaskOutput": "Venter på svar",
-                "Running: Task": "Delegerer til spesialist...",
-                "Running: Skill": "Trekker frem et triks",
-                "Running: NotebookEdit": "Skriver i notatboka",
-                "Running: ToolSearch": "Finner riktig verktøy",
-                "Running: TodoWrite": "Noterer ned hva jeg må gjøre",
-                "Running: TodoRead": "Sjekker huskelista",
-                "Running: TaskCreate": "Lager en oppgave",
-                "Running: TaskUpdate": "Oppdaterer oppgavelista",
-                "Running: TaskList": "Sjekker oppgavene",
+            # Translate technical tool names to friendly status
+            _STATUS_MAP = {
+                "Running: Bash": "Running a command",
+                "Running: Read": "Reading files",
+                "Running: Write": "Writing something",
+                "Running: Edit": "Making an edit",
+                "Running: Grep": "Searching the codebase",
+                "Running: Glob": "Looking for files",
+                "Running: WebFetch": "Fetching from the web",
+                "Running: WebSearch": "Searching the web",
+                "Running: TaskOutput": "Waiting for a result",
+                "Running: Task": "Delegating to specialist...",
+                "Running: Skill": "Using a skill",
+                "Running: NotebookEdit": "Writing in notebook",
+                "Running: ToolSearch": "Finding the right tool",
+                "Running: TodoWrite": "Noting a to-do",
+                "Running: TodoRead": "Checking the to-do list",
+                "Running: TaskCreate": "Creating a task",
+                "Running: TaskUpdate": "Updating task list",
+                "Running: TaskList": "Checking tasks",
             }
             # Prefix-based matching for MCP tools (mcp__service__action)
-            _EMMA_MCP_PREFIX = {
-                "mcp__claude-in-chrome__": "Styrer nettleseren",
-                "mcp__Neon__": "Snakker med databasen",
+            _MCP_PREFIX = {
+                "mcp__claude-in-chrome__": "Controlling the browser",
+                "mcp__Neon__": "Querying the database",
             }
-            friendly = _EMMA_STATUS.get(status)
+            friendly = _STATUS_MAP.get(status)
             if not friendly and status.startswith("Running: "):
                 tool_name = status[len("Running: "):]
                 # Check MCP prefix matches
-                for prefix, msg in _EMMA_MCP_PREFIX.items():
+                for prefix, msg in _MCP_PREFIX.items():
                     if tool_name.startswith(prefix):
                         friendly = msg
                         break
                 if not friendly:
-                    friendly = "Jobber med det"
+                    friendly = "Working on it"
             elif not friendly:
                 friendly = status
             display = f"\u23f3 {friendly}..."
@@ -1129,13 +812,10 @@ async def _queue_and_process(chat_id: int, prompt: str, update: Update,
         def _register_proc(proc):
             _active_procs[chat_id] = proc
 
-        usage_key = _engine_usage_key(chat_id, engine)
+        usage_key = _session_key(chat_id)
 
         def _store_usage(usage):
             _last_usage[usage_key] = usage
-
-        def _store_rate_limits(rate_limits):
-            _last_rate_limits[usage_key] = rate_limits
 
         # Acquire global Claude lock — only one Claude process at a time
         # (project-level lock in Claude Code prevents concurrent subprocesses)
@@ -1143,7 +823,7 @@ async def _queue_and_process(chat_id: int, prompt: str, update: Update,
         if _claude_lock.locked():
             log.info("Message from %s waiting for lock (another task running)", chat_id)
             dbg.info("LOCK_WAIT | chat=%s | lock is held", chat_id)
-            await _safe_send(bot, chat_id, "\u23f3 Vent litt, holder på med noe annet først...")
+            await _safe_send(bot, chat_id, "\u23f3 Hold on, working on something else first...")
         async with _claude_lock:
             _t_lock_acquired = time.time()
             _t_lock_ms = int((_t_lock_acquired - _t_lock_wait) * 1000)
@@ -1161,7 +841,7 @@ async def _queue_and_process(chat_id: int, prompt: str, update: Update,
                 _claude_prompt,
                 _telegram_runtime_context(
                     chat_id,
-                    purpose="Direct Telegram chat with Simon",
+                    purpose="Direct Telegram chat with [OWNER_NAME]",
                     extra_lines=[
                         "Pending heartbeat context is injected below when present."
                     ] if _hb_ctx else None,
@@ -1173,7 +853,6 @@ async def _queue_and_process(chat_id: int, prompt: str, update: Update,
                 response = await run_assistant_streaming(
                     _claude_prompt,
                     system_prompt=EA_SYSTEM_PROMPT,
-                    engine=engine,
                     session_id=session_id,
                     is_new_session=is_new,
                     session_manager=sessions,
@@ -1184,16 +863,15 @@ async def _queue_and_process(chat_id: int, prompt: str, update: Update,
                     status_callback=_tg_status,
                     proc_callback=_register_proc,
                     usage_callback=_store_usage,
-                    rate_limits_callback=_store_rate_limits,
-                    model=resolved_model,
+                    model=model,
                 )
             finally:
                 _active_procs.pop(chat_id, None)
                 _t_claude_end = time.time()
                 _t_total_ms = int((_t_claude_end - _t_claude_start) * 1000)
-                dbg.info("TIMING | engine=%s | run=%dms (%.1fs) | chat=%s",
-                         engine, _t_total_ms, _t_total_ms / 1000, chat_id)
-        current_sid, _ = sessions.get_session(key, engine=engine)
+                dbg.info("TIMING | run=%dms (%.1fs) | chat=%s",
+                         _t_total_ms, _t_total_ms / 1000, chat_id)
+        current_sid, _ = sessions.get_session(key)
         _sid = current_sid[:8] if current_sid else ""
         _engine_error = _is_engine_failure(response)
 
@@ -1216,11 +894,11 @@ async def _queue_and_process(chat_id: int, prompt: str, update: Update,
     if not response and not _streaming_text:
         log.warning("Empty response for chat %s (session %s) — resetting session",
                      chat_id, _sid)
-        sessions.reset_by_session_id(current_sid, engine=engine)
+        sessions.reset_by_session_id(current_sid)
         _set_failed_request(chat_id, failed_payload)
         response = (
-            "Beklager, noe gikk galt — sesjonen var korrupt og er nå tilbakestilt.\n"
-            "Send meldingen din på nytt, så skal det fungere."
+            "Sorry, something went wrong — the session was corrupt and has been reset.\n"
+            "Resend your message and it should work."
         )
 
     if _engine_error:
@@ -1230,7 +908,7 @@ async def _queue_and_process(chat_id: int, prompt: str, update: Update,
         _set_failed_request(chat_id, None)
 
     if response:
-        log_message(ch="telegram", dir="out", from_="emma", msg=response, sid=_sid)
+        log_message(ch="telegram", dir="out", from_="assistant", msg=response, sid=_sid)
 
         # Final message: edit the streaming message or send new
         if _streaming_msg_id:
@@ -1298,17 +976,17 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     caption = update.message.caption or ""
 
     # Log photo to conversation log
-    log_message(ch="telegram", dir="in", from_="simon",
+    log_message(ch="telegram", dir="in", from_="owner",
                 type_="photo", msg=caption or "[photo]", caption=caption)
 
     prompt = (
-        f"Simon sendte et bilde i chatten. Filen er lagret her: {img_path}\n"
-        f"Bruk Read-verktøyet for å se på bildet og svar.\n"
+        f"[OWNER_NAME] sent an image in the chat. The file is saved here: {img_path}\n"
+        f"Use the Read tool to view the image and respond.\n"
     )
     if caption:
-        prompt += f"Bildetekst fra Simon: {caption}\n"
+        prompt += f"Caption from [OWNER_NAME]: {caption}\n"
     else:
-        prompt += "Ingen bildetekst — beskriv hva du ser og spør om det trengs.\n"
+        prompt += "No caption — describe what you see and ask if needed.\n"
 
     try:
         await _queue_and_process(
@@ -1398,7 +1076,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Show that we're processing the actual audio file
         dur = voice.duration or 0
         await _safe_reply(update.message,
-                          f"\u23f3 Transkriberer lydfil ({dur}s) med Whisper large-v3-turbo...")
+                          f"\u23f3 Transcribing audio ({dur}s) with Whisper large-v3-turbo...")
 
         # Transcribe in background thread (CPU-bound)
         text = await asyncio.get_running_loop().run_in_executor(
@@ -1406,18 +1084,18 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         if not text:
-            await _safe_reply(update.message, "Kunne ikke transkribere (tomt resultat).")
+            await _safe_reply(update.message, "Could not transcribe (empty result).")
             return
 
         # Log voice transcription
-        log_message(ch="telegram", dir="in", from_="simon",
+        log_message(ch="telegram", dir="in", from_="owner",
                     type_="voice", msg=text, transcription=text)
 
         # Show Whisper transcription (clearly labeled)
         await _safe_reply(update.message, f"\U0001f3a4 _Whisper:_ {text}")
 
         # Forward to Claude with voice context
-        voice_prompt = f"[Stemmemelding fra Simon, transkribert med Whisper]: {text}"
+        voice_prompt = f"[Voice message from [OWNER_NAME], transcribed with Whisper]: {text}"
         await _queue_and_process(chat_id, voice_prompt, update, context)
 
     except ImportError:
@@ -1445,9 +1123,8 @@ async def cmd_new(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """/new — consolidate memory from current conversation, then start fresh."""
     chat_id = update.effective_chat.id
     key = _session_key(chat_id)
-    engine, model = _resolve_engine_model()
     sessions.touch_activity(key)
-    prev_session = sessions.get_previous_session(key, engine=engine)
+    prev_session = sessions.get_previous_session(key)
     _log_command_request(update, command="new")
 
     if prev_session:
@@ -1461,36 +1138,35 @@ async def cmd_new(update: Update, context: ContextTypes.DEFAULT_TYPE):
             result = await loop.run_in_executor(
                 None, lambda: consolidate_session(
                     prev_session, system_prompt=EA_SYSTEM_PROMPT,
-                    session_manager=sessions, engine=engine,
-                    model=model, session_key=key))
+                    session_manager=sessions, session_key=key))
         if result.status == "failed":
             await _reply_command(
                 update,
-                "Kunne ikke bekrefte at memory ble lagret trygt. Jeg beholder samme samtale.",
+                "Couldn't confirm memory was saved safely. Keeping the current conversation.",
                 command="new",
             )
             return
     else:
         result = None
 
-    session_id = sessions.reset_session(key, engine=engine)
+    session_id = sessions.reset_session(key)
     if result and result.changed_files:
         saved = ", ".join(path.replace("memory/", "") for path in result.changed_files)
-        prefix = f"Lagret i {saved}. "
+        prefix = f"Saved to {saved}. "
     elif result and result.status == "skipped":
-        prefix = "Ingen viktig ny memory å lagre. "
+        prefix = "No important new memory to save. "
     else:
         prefix = ""
     if session_id:
         await _reply_command(
             update,
-            f"{prefix}Fresh conversation started ({engine} session {session_id[:8]}...)",
+            f"{prefix}Fresh conversation started (session {session_id[:8]}...)",
             command="new",
         )
     else:
         await _reply_command(
             update,
-            f"{prefix}Fresh conversation started ({engine}).",
+            f"{prefix}Fresh conversation started.",
             command="new",
         )
 
@@ -1505,14 +1181,14 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Give me a quick status: how many unread emails do I have, "
         "and what's on my calendar for today? Be brief."
     )
-    engine, resolved_model = _resolve_engine_model()
+    resolved_model = None
     sessions.touch_activity(key)
     try:
         await update.message.chat.send_action("typing")
     except TelegramError:
         pass
     async with sessions.get_lock(key):
-        session_id, is_new = sessions.get_session(key, engine=engine)
+        session_id, is_new = sessions.get_session(key)
         async with _claude_lock:
             loop = asyncio.get_running_loop()
             response = await loop.run_in_executor(
@@ -1526,7 +1202,6 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         ),
                     ),
                     system_prompt=EA_SYSTEM_PROMPT,
-                    engine=engine,
                     session_id=session_id, is_new_session=is_new,
                     session_manager=sessions,
                     session_key=key,
@@ -1552,14 +1227,14 @@ async def cmd_inbox(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "classify them by priority, and draft replies for anything "
         "urgent. Archive obvious noise."
     )
-    engine, resolved_model = _resolve_engine_model()
+    resolved_model = None
     sessions.touch_activity(key)
     try:
         await update.message.chat.send_action("typing")
     except TelegramError:
         pass
     async with sessions.get_lock(key):
-        session_id, is_new = sessions.get_session(key, engine=engine)
+        session_id, is_new = sessions.get_session(key)
         async with _claude_lock:
             loop = asyncio.get_running_loop()
             response = await loop.run_in_executor(
@@ -1573,7 +1248,6 @@ async def cmd_inbox(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         ),
                     ),
                     system_prompt=EA_SYSTEM_PROMPT,
-                    engine=engine,
                     session_id=session_id, is_new_session=is_new,
                     session_manager=sessions,
                     session_key=key,
@@ -1732,10 +1406,9 @@ async def cmd_context(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """/context — show context window usage + memory breakdown."""
     chat_id = update.effective_chat.id
     key = _session_key(chat_id)
-    engine, _ = _resolve_engine_model()
     _log_command_request(update, command="context")
-    usage = _last_usage.get(_engine_usage_key(chat_id, engine))
-    session_id, _ = sessions.get_session(key, engine=engine)
+    usage = _last_usage.get(_session_key(chat_id))
+    session_id, _ = sessions.get_session(key)
     session_label = session_id[:8] if session_id else "new"
 
     lines = []
@@ -1754,7 +1427,7 @@ async def cmd_context(update: Update, context: ContextTypes.DEFAULT_TYPE):
         filled = int(bar_len * pct / 100)
         bar = "█" * filled + "░" * (bar_len - filled)
 
-        lines.append(f"📊 *Session {session_label} ({engine})*")
+        lines.append(f"📊 *Session {session_label}*")
         lines.append(f"`[{bar}]` {pct:.1f}%")
         lines.append(f"Input: {inp:,} / 200k tokens")
         lines.append(f"Output: {out:,} tokens")
@@ -1763,7 +1436,7 @@ async def cmd_context(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if cache_created:
             lines.append(f"Cache created: {cache_created:,}")
     else:
-        lines.append(f"📊 *Session {session_label} ({engine})*")
+        lines.append(f"📊 *Session {session_label}*")
         lines.append("No token data yet — send a message first.")
 
     # --- Memory files breakdown ---
@@ -1772,8 +1445,7 @@ async def cmd_context(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     memory_dir = os.path.join(PROJECT_DIR, "memory")
     rules_dir = os.path.join(PROJECT_DIR, ".claude", "rules")
-    steering_md = os.path.join(
-        PROJECT_DIR, "CLAUDE.md" if engine == ENGINE_CLAUDE else "AGENTS.md")
+    steering_md = os.path.join(PROJECT_DIR, "CLAUDE.md")
     soul_md = os.path.join(PROJECT_DIR, "SOUL.md")
     tasks_md = os.path.join(PROJECT_DIR, "TASKS.md")
 
@@ -1827,28 +1499,28 @@ async def cmd_context(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Conversation logs
     conv_count, conv_sz = _dir_stats(os.path.join(memory_dir, "conversations"), ".jsonl")
-    lines.append(f"Lastes eksplisitt hver turn: ~{_est_tokens(auto_total):,} tok")
+    lines.append(f"Loaded every turn: ~{_est_tokens(auto_total):,} tok")
     lines.append(f"_(steering + rules + SOUL = {_fmt(auto_total)})_")
 
     lines.append("")
-    lines.append("*Selektivt tilgjengelig ved behov*")
+    lines.append("*Selectively available on demand*")
     lines.append(f"MEMORY.md (durable): {_fmt(memory_sz)} (~{_est_tokens(memory_sz):,} tok)")
-    lines.append(f"STATE.md (operativt): {_fmt(state_sz)} (~{_est_tokens(state_sz):,} tok)")
-    lines.append(f"SUMMARY.md (bakgrunn): {_fmt(summary_sz)} (~{_est_tokens(summary_sz):,} tok)")
+    lines.append(f"STATE.md (operational): {_fmt(state_sz)} (~{_est_tokens(state_sz):,} tok)")
+    lines.append(f"SUMMARY.md (background): {_fmt(summary_sz)} (~{_est_tokens(summary_sz):,} tok)")
     lines.append(f"HISTORY.md: {_fmt(history_sz)}")
     lines.append(f"ACTIVE_THREADS.md: {_fmt(active_threads_sz)}")
     lines.append(f"TASKS.md: {_fmt(tasks_sz)}")
-    lines.append(f"Daglige oppsummeringer: {sum_count} filer, {_fmt(sum_sz)}")
-    lines.append(f"Samtalelogger: {conv_count} filer, {_fmt(conv_sz)}")
-    lines.append("Rå samtalelogger lastes ikke automatisk; bruk grep ved behov.")
+    lines.append(f"Daily summaries: {sum_count} files, {_fmt(sum_sz)}")
+    lines.append(f"Conversation logs: {conv_count} files, {_fmt(conv_sz)}")
+    lines.append("Raw conversation logs are not loaded automatically; use grep when needed.")
 
     # Warnings
     if usage:
         pct = (usage.get("input_tokens", 0) / 200_000) * 100
         if pct > 80:
-            lines.append("\n⚠️ Context nesten full. Vurder /new.")
+            lines.append("\n⚠️ Context almost full. Consider /new.")
         elif pct > 50:
-            lines.append("\n⚡ Over halvveis.")
+            lines.append("\n⚡ Over halfway.")
 
     await _reply_command(update, "\n".join(lines), command="context")
 
@@ -1857,102 +1529,23 @@ async def cmd_context(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_usage(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """/usage — show 5h + weekly usage remaining."""
     chat_id = update.effective_chat.id
-    engine, _ = _resolve_engine_model()
     _log_command_request(update, command="usage")
-    lines = [f"📈 *Usage ({engine})*"]
+    lines = ["📈 *Usage*"]
 
-    if engine == ENGINE_CLAUDE:
-        data, err = await _fetch_claude_usage_windows()
-        if err:
-            lines.append(f"Claude usage utilgjengelig: {err}")
-        else:
-            line_5h = _format_window_line("5h", data.get("five_hour"))
-            line_7d = _format_window_line("7d", data.get("seven_day"))
-            if line_5h:
-                lines.append(line_5h)
-            if line_7d:
-                lines.append(line_7d)
-            if not line_5h and not line_7d:
-                lines.append("Fant ingen 5h/7d usage-felter i responsen.")
+    data, err = await _fetch_claude_usage_windows()
+    if err:
+        lines.append(f"Usage unavailable: {err}")
     else:
-        usage_key = _engine_usage_key(chat_id, ENGINE_CODEX)
-        rate_limits = _last_rate_limits.get(usage_key)
-        if not rate_limits:
-            rate_limits, err = _fetch_codex_rate_limits_from_sessions()
-            if err:
-                lines.append(f"Codex usage utilgjengelig: {err}")
-        if rate_limits:
-            _last_rate_limits[usage_key] = rate_limits
-            lines.extend(_format_codex_usage_lines(rate_limits))
-        elif len(lines) == 1:
-            lines.extend(_format_codex_usage_lines(None))
+        line_5h = _format_window_line("5h", data.get("five_hour"))
+        line_7d = _format_window_line("7d", data.get("seven_day"))
+        if line_5h:
+            lines.append(line_5h)
+        if line_7d:
+            lines.append(line_7d)
+        if not line_5h and not line_7d:
+            lines.append("No 5h/7d usage fields found in the response.")
 
     await _reply_command(update, "\n".join(lines), command="usage")
-
-
-@authorized
-async def cmd_topics(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """/topics — show recent shared relay topics or details for one topic."""
-    args = context.args or []
-    _log_command_request(update, command="topics")
-    if args:
-        topic = find_shared_topic_by_prefix(args[0])
-        if not topic:
-            await _reply_command(
-                update,
-                f"Fant ingen topic som matcher '{args[0]}'.",
-                command="topics",
-            )
-            return
-
-        lines = [
-            f"🧠 *Topic {topic['id']}*",
-            f"Status: {topic.get('status', 'ukjent')}",
-            f"Oppdatert: {topic.get('updated_at', 'ukjent')}",
-        ]
-        participants = topic.get("participants") or []
-        if participants:
-            lines.append(f"Deltakere: {', '.join(participants)}")
-        lines.append(f"Summary: {topic.get('summary', 'ingen')}")
-
-        question = topic.get("latest_question")
-        if question:
-            lines.append(f"Siste spørsmål: {question}")
-        answer = topic.get("latest_answer")
-        if answer:
-            lines.append(f"Siste svar: {answer}")
-
-        links = topic.get("links") or {}
-        slack_threads = links.get("slack_threads") or []
-        telegram_chats = links.get("telegram_chats") or []
-        if slack_threads:
-            ref = slack_threads[0]
-            lines.append(
-                f"Slack: {ref.get('channel', '?')} / {ref.get('thread_ts') or 'ingen tråd'}"
-            )
-        if telegram_chats:
-            ref = telegram_chats[0]
-            lines.append(f"Telegram: {ref.get('chat_id', '?')}")
-        await _reply_command(update, "\n".join(lines), command="topics")
-        return
-
-    topics = get_recent_shared_topics(limit=8)
-    if not topics:
-        await _reply_command(update, "Ingen shared topics ennå.", command="topics")
-        return
-
-    lines = ["🧠 *Siste shared topics*"]
-    for topic in topics:
-        short_id = topic.get("id", "topic")[:18]
-        status = topic.get("status", "ukjent")
-        summary = topic.get("summary", "")
-        if len(summary) > 110:
-            summary = summary[:109] + "…"
-        lines.append(f"`{short_id}` · {status}")
-        if summary:
-            lines.append(summary)
-    lines.append("\nDetaljer: `/topics <id-prefix>`")
-    await _reply_command(update, "\n".join(lines), command="topics")
 
 
 @authorized
@@ -1971,83 +1564,13 @@ async def cmd_research(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     chat_id = update.effective_chat.id
     key = _session_key(chat_id)
-    engine, _ = _resolve_engine_model()
     sessions.touch_activity(key)
 
-    if engine == ENGINE_CLAUDE:
-        await _reply_command(update, "Researching (Sonnet)...", command="research")
-        model_override = "sonnet"
-    else:
-        await _reply_command(update, "Researching...", command="research")
-        model_override = None
+    await _reply_command(update, "Researching (Sonnet)...", command="research")
+    model_override = "sonnet"
 
     await _queue_and_process(chat_id, query, update, context,
                              model=model_override)
-
-
-@authorized
-async def cmd_engine(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """/engine — show or switch global assistant engine."""
-    chat_id = update.effective_chat.id
-    args = context.args or []
-    _log_command_request(update, command="engine")
-
-    if not args:
-        state = get_engine_state()
-        current = state["engine"]
-        c_model = state["models"].get(ENGINE_CLAUDE) or "(default)"
-        x_model = state["models"].get(ENGINE_CODEX) or "(default)"
-        await _reply_command(
-            update,
-            "Assistant engine (global):\n"
-            f"- current: {current}\n"
-            f"- {ENGINE_CLAUDE} model: {c_model}\n"
-            f"- {ENGINE_CODEX} model: {x_model}\n\n"
-            "Switch examples:\n"
-            "/engine claude\n"
-            "/engine codex\n"
-            "/engine codex gpt-5.4\n"
-            "/engine claude default",
-            command="engine",
-        )
-        return
-
-    engine = args[0].strip().lower()
-    if engine not in {ENGINE_CLAUDE, ENGINE_CODEX}:
-        await _reply_command(
-            update,
-            "Usage: /engine <claude|codex> [model]",
-            command="engine",
-        )
-        return
-
-    try:
-        if len(args) >= 2:
-            raw_model = " ".join(args[1:]).strip()
-            if raw_model.lower() in {"default", "none", "-"}:
-                model_value = None
-            else:
-                model_value = raw_model
-            state = set_engine_state(
-                engine, model=model_value, updated_by=f"telegram:{chat_id}")
-        else:
-            state = set_engine_state(
-                engine, updated_by=f"telegram:{chat_id}")
-    except ValueError as e:
-        await _reply_command(update, str(e), command="engine")
-        return
-
-    current = state["engine"]
-    c_model = state["models"].get(ENGINE_CLAUDE) or "(default)"
-    x_model = state["models"].get(ENGINE_CODEX) or "(default)"
-    await _reply_command(
-        update,
-        "Updated assistant engine:\n"
-        f"- current: {current}\n"
-        f"- {ENGINE_CLAUDE} model: {c_model}\n"
-        f"- {ENGINE_CODEX} model: {x_model}",
-        command="engine",
-    )
 
 
 @authorized
@@ -2065,7 +1588,7 @@ async def cmd_retry(update: Update, context: ContextTypes.DEFAULT_TYPE):
         _set_failed_request(chat_id, None)
         await _reply_command(
             update,
-            "Bildet fra forrige feilede forespørsel finnes ikke lenger. Send det på nytt.",
+            "The image from the previous failed request no longer exists. Resend it.",
             command="retry",
         )
         return
@@ -2093,12 +1616,10 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/plan <task> — research and write an implementation plan\n"
         "/execute — execute the active plan\n"
         "/research <question> — research a topic (Sonnet, faster)\n"
-        "/engine — show/switch assistant engine\n"
         "/retry — retry last failed request\n"
         "/cancel — stop the running task\n"
         "/usage — show 5h + weekly usage remaining\n"
         "/context — show context window usage\n"
-        "/topics — show shared relay topics\n"
         "/heartbeat — manually check for new emails\n"
         "\nYou can also just send a regular message and I'll handle it."
     )
@@ -2123,27 +1644,23 @@ async def cmd_heartbeat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ---------------------------------------------------------------------------
 
 HEARTBEAT_TRIAGE_PROMPT = """\
-Check Emma's inbox (emma@vibelabs.no) for new unread emails.
+Check [ASSISTANT_NAME]'s inbox ([ASSISTANT_EMAIL]) for new unread emails.
 
-⛔ ACCOUNT RESTRICTION: ONLY check and act on emma@vibelabs.no.
-DO NOT read, archive, modify, or touch ANY other email account.
-Never access simonstrumse@gmail.com, simon@vibelabs.no, hello@vibelabs.no, or oslo@seaexperience.no during heartbeat.
-
-FOR EACH UNREAD EMAIL in emma@vibelabs.no:
+FOR EACH UNREAD EMAIL in [ASSISTANT_EMAIL]:
 - Check ACTIVE_THREADS.md for thread-specific auto-reply instructions.
-- If you can handle it (scheduling, info requests, simple questions): reply as Emma.
-- If it's sensitive, private, financial, or unsure: note it for Simon.
-- You have READ access to Simon's calendar, contacts, and email history for context.
+- If you can handle it (scheduling, info requests, simple questions): reply as [ASSISTANT_NAME].
+- If it's sensitive, private, financial, or unsure: note it for [OWNER_NAME].
+- You have READ access to [OWNER_NAME]'s calendar, contacts, and email history for context.
 
 RESPONSE:
 - If NOTHING needs attention: respond with exactly HEARTBEAT_SKIP
 - If something IS noteworthy: write a brief summary.
-  Group by: \u2705 Handled \u2192 \u27a1\ufe0f Forwarded to Simon \u2192 \u2753 Needs your input.
+  Group by: \u2705 Handled \u2192 \u27a1\ufe0f Forwarded to [OWNER_NAME] \u2192 \u2753 Needs your input.
   Keep under 300 words.
 """
 
 
-HEARTBEAT_SESSION_KEY = "heartbeat:emma-vibelabs"
+HEARTBEAT_SESSION_KEY = "heartbeat:[EMAIL_ACCOUNT_KEY]"
 HEARTBEAT_MAX_AGE_HOURS = 24
 
 
@@ -2167,41 +1684,35 @@ async def run_heartbeat_triage(bot=None) -> None:
         log.info("Heartbeat: skipping — assistant process already running")
         return
 
-    engine, resolved_model = _resolve_engine_model()
     async with _claude_lock:
-        session_id, is_new = sessions.get_session(
-            HEARTBEAT_SESSION_KEY, engine=engine)
+        session_id, is_new = sessions.get_session(HEARTBEAT_SESSION_KEY)
 
         # Auto-reset stale heartbeat sessions
         if not is_new and _heartbeat_session_age() > HEARTBEAT_MAX_AGE_HOURS:
             log.info("Heartbeat: session older than %dh, consolidating and resetting",
                      HEARTBEAT_MAX_AGE_HOURS)
-            prev_session = sessions.get_previous_session(
-                HEARTBEAT_SESSION_KEY, engine=engine)
+            prev_session = sessions.get_previous_session(HEARTBEAT_SESSION_KEY)
             if prev_session:
                 loop = asyncio.get_running_loop()
                 consolidation = await loop.run_in_executor(
                     None, lambda: consolidate_session(
                         prev_session, system_prompt=EMAIL_SPECIALIST_PROMPT,
-                        session_manager=sessions, engine=engine,
-                        model=resolved_model, session_key=HEARTBEAT_SESSION_KEY))
+                        session_manager=sessions, session_key=HEARTBEAT_SESSION_KEY))
                 if consolidation.status == "failed":
                     log.warning(
                         "Heartbeat: consolidation failed, keeping existing session %s",
                         prev_session[:8],
                     )
                 else:
-                    session_id = sessions.reset_session(
-                        HEARTBEAT_SESSION_KEY, engine=engine)
+                    session_id = sessions.reset_session(HEARTBEAT_SESSION_KEY)
                     is_new = True
             else:
-                session_id = sessions.reset_session(
-                    HEARTBEAT_SESSION_KEY, engine=engine)
+                session_id = sessions.reset_session(HEARTBEAT_SESSION_KEY)
                 is_new = True
 
         sessions.touch_activity(HEARTBEAT_SESSION_KEY)
-        dbg.info("HEARTBEAT | engine=%s | session=%s (%s)",
-                 engine, (session_id[:8] if session_id else "new"),
+        dbg.info("HEARTBEAT | session=%s (%s)",
+                 (session_id[:8] if session_id else "new"),
                  "new" if is_new else "resume")
 
         # Must pass a callback to force streaming mode (not blocking run_in_executor)
@@ -2216,11 +1727,10 @@ async def run_heartbeat_triage(bot=None) -> None:
                     channel="heartbeat",
                     chat_id=HEARTBEAT_SESSION_KEY,
                     session_key=HEARTBEAT_SESSION_KEY,
-                    purpose="Unread email triage for emma@vibelabs.no",
+                    purpose="Unread email triage for [ASSISTANT_EMAIL]",
                 ),
             ),
             system_prompt=EMAIL_SPECIALIST_PROMPT,
-            engine=engine,
             session_id=session_id,
             is_new_session=is_new,
             session_manager=sessions,
@@ -2239,7 +1749,7 @@ async def run_heartbeat_triage(bot=None) -> None:
                      triage[:200])
         return
 
-    log_message(ch="telegram", dir="out", from_="emma",
+    log_message(ch="telegram", dir="out", from_="assistant",
                 type_="heartbeat", msg=triage)
 
     log.info("Heartbeat: something noteworthy, notifying")
@@ -2248,99 +1758,6 @@ async def run_heartbeat_triage(bot=None) -> None:
             _save_heartbeat_outbound(chat_id, triage)
             await _safe_send(bot, chat_id, triage)
             log.info("Heartbeat: notification sent to chat %s", chat_id)
-
-
-# ---------------------------------------------------------------------------
-# Cross-channel relay: Slack → Telegram → Slack
-# ---------------------------------------------------------------------------
-RELAY_POLL_INTERVAL = 5  # seconds
-
-
-async def cmd_relay(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /relay <id_prefix> <answer> — answer a Slack relay."""
-    if update.effective_chat.id not in ALLOWED_CHAT_IDS:
-        return
-    _log_command_request(update, command="relay")
-
-    args = context.args or []
-    if len(args) < 2:
-        await _reply_command(
-            update,
-            "Bruk: /relay <id> <svar>\n"
-            "Eksempel: /relay abc123 Ja, 9. mars funker",
-            command="relay",
-        )
-        return
-
-    id_prefix = args[0]
-    answer = " ".join(args[1:])
-
-    relay = find_relay_by_prefix(id_prefix)
-    if not relay:
-        await _reply_command(
-            update,
-            f"Fant ingen relay med ID som starter med '{id_prefix}'.",
-            command="relay",
-        )
-        return
-
-    if relay.get("status") not in ("forwarded", "pending"):
-        await _reply_command(
-            update,
-            f"Relay {id_prefix} er allerede besvart.",
-            command="relay",
-        )
-        return
-
-    mark_answered(
-        relay["id"],
-        answer,
-        answered_in_context={"chat_id": str(update.effective_chat.id)},
-    )
-    await _reply_command(
-        update,
-        f"✅ Svar sendt tilbake til {relay['from_user']} på Slack.",
-        command="relay",
-    )
-
-    log_message(ch="telegram", dir="in", from_="simon",
-                msg=f"/relay {id_prefix} {answer}", type_="relay_answer")
-
-
-async def _poll_relay_requests(bot) -> None:
-    """Poll for pending relays and forward them to Simon on Telegram."""
-    await asyncio.sleep(15)  # Wait for bot to fully start
-    log.info("Relay request poller started (interval=%ds)", RELAY_POLL_INTERVAL)
-
-    while True:
-        try:
-            pending = get_relays(status="pending")
-            for relay in pending:
-                short_id = relay["id"][:8]
-                from_user = relay.get("from_user", "noen")
-                from_channel = relay.get("from_channel", "?")
-                message = relay.get("message", "")
-
-                text = (f"📨 *Relay fra {from_user} ({from_channel}):*\n\n"
-                        f"{message}\n\n"
-                        f"_Svar:_ `/relay {short_id} <ditt svar>`")
-
-                for chat_id in ALLOWED_CHAT_IDS:
-                    await _safe_send(bot, chat_id, text)
-
-                mark_forwarded(relay["id"])
-                log.info("relay: forwarded %s to Telegram from %s/%s",
-                         short_id, from_channel, from_user)
-
-                log_message(ch="telegram", dir="out", from_="emma",
-                            msg=text, type_="relay_forward")
-
-            # Periodic cleanup
-            relay_cleanup(max_age_hours=48)
-        except Exception as e:
-            log.warning("relay: poll error: %s", e)
-
-        await asyncio.sleep(RELAY_POLL_INTERVAL)
 
 
 # ---------------------------------------------------------------------------
@@ -2357,13 +1774,10 @@ def _migrate_sessions_if_needed() -> None:
             new_data = {
                 "version": 2,
                 "chat_sessions": {
-                    f"tg:{k}": {"claude": v}
+                    f"tg:{k}": v if isinstance(v, str) else (v.get("claude", "") if isinstance(v, dict) else "")
                     for k, v in old_data.get("chat_sessions", {}).items()
                 },
-                "created_sessions": {
-                    "claude": old_data.get("created_sessions", []),
-                    "codex": [],
-                },
+                "created_sessions": old_data.get("created_sessions", []),
             }
             os.makedirs(os.path.dirname(SESSIONS_FILE), exist_ok=True)
             with open(SESSIONS_FILE, "w") as f:
@@ -2467,14 +1881,11 @@ def main():
             BotCommand("plan", "Research and write an implementation plan"),
             BotCommand("execute", "Execute the active plan"),
             BotCommand("research", "Research a topic (Sonnet, faster)"),
-            BotCommand("engine", "Show or switch assistant engine"),
             BotCommand("retry", "Retry the last failed request"),
             BotCommand("cancel", "Stop the running task"),
             BotCommand("usage", "Show 5h + weekly usage remaining"),
             BotCommand("context", "Show context window usage"),
-            BotCommand("topics", "Show shared relay topics"),
             BotCommand("heartbeat", "Check for new emails"),
-            BotCommand("relay", "Answer a Slack relay"),
         ])
 
         # Inject bot reference into watcher tasks so heartbeat can send messages
@@ -2491,11 +1902,7 @@ def main():
         _bg_tasks.append(asyncio.create_task(
             task_queue.start_consumer(_handle_queued_task)))
         _bg_tasks.append(asyncio.create_task(watcher.run_loop()))
-        _bg_tasks.append(asyncio.create_task(
-            _poll_relay_requests(application.bot)))
-        _bg_tasks.append(asyncio.create_task(
-            _gemini3_probe_loop(application.bot)))
-        log.info("Task queue consumer, watcher, relay poller, and Gemini probe started")
+        log.info("Task queue consumer and watcher started")
 
     async def pre_shutdown(application):
         """Cancel background tasks cleanly on shutdown."""
@@ -2517,14 +1924,11 @@ def main():
     app.add_handler(CommandHandler("plan", cmd_plan))
     app.add_handler(CommandHandler("execute", cmd_execute))
     app.add_handler(CommandHandler("research", cmd_research))
-    app.add_handler(CommandHandler("engine", cmd_engine))
     app.add_handler(CommandHandler("retry", cmd_retry))
     app.add_handler(CommandHandler("cancel", cmd_cancel))
     app.add_handler(CommandHandler("usage", cmd_usage))
     app.add_handler(CommandHandler("context", cmd_context))
-    app.add_handler(CommandHandler("topics", cmd_topics))
     app.add_handler(CommandHandler("heartbeat", cmd_heartbeat))
-    app.add_handler(CommandHandler("relay", cmd_relay))
 
     # Photos -> Save to disk + let Claude see them
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))

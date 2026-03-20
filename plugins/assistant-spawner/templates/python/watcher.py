@@ -1,6 +1,6 @@
 """Lightweight email watcher — pure Python, zero Claude tokens.
 
-Checks Emma's Gmail inbox via API every 15 minutes. Only enqueues a heartbeat
+Checks [ASSISTANT_NAME]'s Gmail inbox via API every 15 minutes. Only enqueues a heartbeat
 triage task when new unread emails appear. State persists across restarts.
 """
 
@@ -22,11 +22,11 @@ STATE_FILE = os.path.join(PROJECT_DIR, "memory", ".heartbeat-state.json")
 # Add google-accounts client to path
 sys.path.insert(0, str(Path.home() / '.config/google-accounts'))
 
-CHECK_INTERVAL_SECONDS = 300  # 5 minutes (temporarily — Simon requested. Normal: 900/15min. NB: 120/2min caused Gmail ban)
+CHECK_INTERVAL_SECONDS = 900  # 15 minutes
 
 
 class HeartbeatWatcher:
-    """Watches Emma's Gmail for new unread emails without spawning Claude."""
+    """Watches [ASSISTANT_NAME]'s Gmail for new unread emails without spawning Claude."""
 
     def __init__(self, task_queue: TaskQueue):
         self.task_queue = task_queue
@@ -63,7 +63,7 @@ class HeartbeatWatcher:
     def _check_gmail(self) -> bool:
         """Synchronous Gmail API check. Returns True if new unread emails exist."""
         from client import get_gmail_service
-        gmail = get_gmail_service('emma-vibelabs')
+        gmail = get_gmail_service('[EMAIL_ACCOUNT_KEY]')
 
         results = gmail.users().messages().list(
             userId='me', q='is:unread in:inbox', maxResults=20
