@@ -1,0 +1,8 @@
+# Video template dependencies
+# ffmpeg must be installed on system: brew install ffmpeg
+
+# OPTIONAL — only needed for --mode api (paid, direct API calls)
+# anthropic>=0.20            # Phase 2 API mode only
+# google-generativeai>=0.4   # Phase 4 Gemini enrichment only
+
+# Subagent mode (free, default) needs no Python packages beyond stdlib + ffmpeg
