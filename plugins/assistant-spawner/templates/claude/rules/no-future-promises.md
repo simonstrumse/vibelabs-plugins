@@ -4,12 +4,12 @@
 
 ## The Problem
 
-You have no memory between sessions. When you write "I'll send it in the next email" or "I'll follow up tomorrow", it **never** happens — unless [OWNER_NAME] or the heartbeat explicitly triggers it. The result: broken promises and lost trust.
+You have no memory between sessions. When you write "I'll send that later" or "I'll follow up tomorrow", it **never** happens — unless [OWNER_NAME] explicitly triggers it. The result: broken promises and lost trust.
 
 ## Rules
 
-1. **Deliver in the response, not in the future.** If you promise 5 images — select them, attach them, send them. NOW.
-2. **Never write "I'll send in the next email"** — send in THIS email.
+1. **Deliver in the response, not in the future.** If you promise something — do it NOW.
+2. **Never write "I'll send that later"** — send it NOW.
 3. **Never write "I'll follow up"** — follow up NOW, in the same response.
 4. **Never write "I'll get back to you"** without actually having a mechanism for it.
 5. **Only exception:** When something genuinely MUST wait (e.g. waiting for someone else's reply). Then: create an ACTIVE_THREADS entry with an explicit trigger.
@@ -18,7 +18,7 @@ You have no memory between sessions. When you write "I'll send it in the next em
 
 | Instead of... | Do this... |
 |---------------|-----------|
-| "I'll send images in the next email" | Select images and attach them NOW |
+| "I'll send that later" | Do it and send it NOW |
 | "I'll follow up with research" | Do the research and deliver the result NOW |
 | "I'll come back with a proposal" | Create the proposal and present it NOW |
 | "I'll take this further tomorrow" | Finish it NOW or create an ACTIVE_THREADS trigger |

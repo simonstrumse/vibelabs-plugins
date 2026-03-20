@@ -1,7 +1,7 @@
-"""Priority task queue — serializes Claude Code access so heartbeat and user messages never collide.
+"""Priority task queue — serializes Claude Code access so concurrent tasks never collide.
 
 Single consumer guarantees only one Claude subprocess runs at a time.
-Priority levels: P0=user, P1=manual command, P2=watcher triage, P3=maintenance.
+Priority levels: P0=user, P1=manual command, P2=background, P3=maintenance.
 """
 
 import asyncio
@@ -16,16 +16,16 @@ log = logging.getLogger(__name__)
 @dataclass(order=True)
 class Task:
     """A queued task with priority ordering."""
-    priority: int                                     # 0=user, 1=manual, 2=watcher, 3=maintenance
+    priority: int                                     # 0=user, 1=manual, 2=background, 3=maintenance
     created_at: float                                 # tiebreaker for same priority
-    task_type: str = field(compare=False)             # "user_message", "heartbeat_triage", etc.
+    task_type: str = field(compare=False)             # "user_message", etc.
     payload: dict[str, Any] = field(compare=False, default_factory=dict)
 
 
 # Priority constants
 P_USER = 0
 P_MANUAL = 1
-P_WATCHER = 2
+P_BACKGROUND = 2
 P_MAINTENANCE = 3
 
 
@@ -33,7 +33,7 @@ class TaskQueue:
     """Priority queue with a single async consumer.
 
     Ensures only one Claude Code process runs at a time, eliminating
-    project-lock contention between heartbeat and user messages.
+    project-lock contention between concurrent tasks.
     """
 
     def __init__(self):

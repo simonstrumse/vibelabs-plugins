@@ -39,7 +39,6 @@ from bot_common import (
 )
 from conversation_logger import log_message
 from task_queue import TaskQueue
-from watcher import HeartbeatWatcher
 from runtime_support import (
     build_runtime_context,
     compose_system_prompt,
@@ -64,9 +63,8 @@ CLAUDE_PLANS_DIR = os.path.expanduser("~/.claude/plans")
 SESSIONS_FILE = os.path.join(PROJECT_DIR, "memory", ".sessions-telegram.json")
 sessions = SessionManager(SESSIONS_FILE)
 
-# Task queue and watcher (initialized in main)
+# Task queue (initialized in main)
 task_queue: TaskQueue | None = None
-watcher: HeartbeatWatcher | None = None
 
 # Global lock for all assistant subprocess calls.
 _claude_lock = asyncio.Lock()
@@ -169,119 +167,6 @@ def _failed_request_keeps_file(chat_id: int, path: str) -> bool:
         and payload.get("image_path") == path
     )
 
-# ---------------------------------------------------------------------------
-# Heartbeat context injection — bridges heartbeat → chat context
-# ---------------------------------------------------------------------------
-_HEARTBEAT_OUTBOUND_FILE = os.path.join(PROJECT_DIR, "memory", ".heartbeat-outbound.jsonl")
-_HEARTBEAT_TTL_HOURS = 4  # Ignore heartbeat context older than this
-
-
-def _save_heartbeat_outbound(chat_id: int, message: str) -> None:
-    """Append heartbeat message to outbound queue for later injection."""
-    entry = {
-        "timestamp": datetime.now().isoformat(timespec="seconds"),
-        "chat_id": chat_id,
-        "message": message,
-        "consumed": False,
-    }
-    tmp = _HEARTBEAT_OUTBOUND_FILE + ".tmp"
-    try:
-        # Append to JSONL (atomic: read existing, append, write via tmp+replace)
-        lines = []
-        if os.path.exists(_HEARTBEAT_OUTBOUND_FILE):
-            with open(_HEARTBEAT_OUTBOUND_FILE, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-        lines.append(json.dumps(entry, ensure_ascii=False) + "\n")
-        with open(tmp, "w", encoding="utf-8") as f:
-            f.writelines(lines)
-        os.replace(tmp, _HEARTBEAT_OUTBOUND_FILE)
-    except OSError as e:
-        log.warning("Failed to save heartbeat outbound: %s", e)
-
-
-def _peek_heartbeat_context(chat_id: int) -> str | None:
-    """Read pending heartbeat context for a chat WITHOUT consuming it.
-
-    Returns formatted context string or None.  Filters by chat_id and TTL.
-    """
-    try:
-        with open(_HEARTBEAT_OUTBOUND_FILE, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-    except (OSError, FileNotFoundError):
-        return None
-
-    now = datetime.now()
-    pending = []
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            entry = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if entry.get("consumed", True):
-            continue
-        if entry.get("chat_id") != chat_id:
-            continue
-        ts = entry.get("timestamp", "")
-        try:
-            entry_time = datetime.fromisoformat(ts)
-            age_hours = (now - entry_time).total_seconds() / 3600
-            if age_hours > _HEARTBEAT_TTL_HOURS:
-                continue
-        except (ValueError, TypeError):
-            continue
-        pending.append(entry)
-
-    if not pending:
-        return None
-
-    # Build context from all pending heartbeats
-    parts = []
-    for entry in pending:
-        ts = entry.get("timestamp", "unknown")
-        msg = entry.get("message", "")
-        parts.append(f"[Heartbeat at {ts}]\n{msg}")
-
-    header = (
-        "[HEARTBEAT CONTEXT: [ASSISTANT_NAME] sent the following heartbeat summary(ies) "
-        "to [OWNER_NAME]. [OWNER_NAME]'s next message may be a reply to something here. "
-        "Use only if relevant.]"
-    )
-    return header + "\n\n" + "\n\n---\n\n".join(parts)
-
-
-def _mark_heartbeats_consumed(chat_id: int) -> None:
-    """Mark all pending heartbeats for a chat as consumed. Call after successful processing."""
-    try:
-        with open(_HEARTBEAT_OUTBOUND_FILE, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-    except (OSError, FileNotFoundError):
-        return
-
-    updated = []
-    for line in lines:
-        line_s = line.strip()
-        if not line_s:
-            continue
-        try:
-            entry = json.loads(line_s)
-        except json.JSONDecodeError:
-            updated.append(line)
-            continue
-        if entry.get("chat_id") == chat_id and not entry.get("consumed", True):
-            entry["consumed"] = True
-        updated.append(json.dumps(entry, ensure_ascii=False) + "\n")
-
-    tmp = _HEARTBEAT_OUTBOUND_FILE + ".tmp"
-    try:
-        with open(tmp, "w", encoding="utf-8") as f:
-            f.writelines(updated)
-        os.replace(tmp, _HEARTBEAT_OUTBOUND_FILE)
-    except OSError:
-        pass  # Best effort
-
 # System prompt that shapes Claude's behavior when running as a Telegram EA.
 # CLAUDE.md (loaded automatically from the project dir) provides API docs and
 # tools. This prompt tells Claude *how to act* as an executive assistant.
@@ -290,7 +175,6 @@ You ARE [ASSISTANT_FULL_NAME], [OWNER_FULL_NAME]'s executive assistant. \
 You speak as [ASSISTANT_NAME] — first person, never third person. Operating via Telegram.
 
 SYSTEMS YOU MANAGE:
-- Email: [ASSISTANT_EMAIL] (your account)
 - Calendar, Drive, Docs, Sheets, Contacts, Tasks (via GoogleServices)
 - Telegram: this chat (telegram_bot.py)
 
@@ -298,16 +182,6 @@ PERSONALITY:
 - Communicate like [OWNER_NAME]: direct, brief, [DEFAULT_LANGUAGE] by default, English when needed.
 - Keep Telegram messages short. Use bullet points, not paragraphs.
 - Don't explain what you're doing — just do it and report results.
-- When drafting emails, use [OWNER_NAME]'s voice (see email-learnings.md and CLAUDE.md).
-
-EMAIL DELEGATION:
-- ALL email work goes through the email specialist subagent.
-- When [OWNER_NAME] asks about email, inbox, drafts, or anything email-related: \
-delegate to the email specialist using the Task tool (subagent_type: "email-specialist").
-- This includes: reading emails, processing inbox, drafting replies, archiving, \
-sending, and any email research.
-- DO NOT read, draft, or send emails yourself — always delegate.
-- Forward the specialist's report to [OWNER_NAME] as-is (it's already Telegram-formatted).
 
 AUTONOMY RULES:
 - You CAN: check calendar, search, create drafts, update TASKS.md, \
@@ -372,38 +246,6 @@ class _RedactTelegramTokenFilter(logging.Filter):
 
 
 logging.getLogger().addFilter(_RedactTelegramTokenFilter())
-
-# ---------------------------------------------------------------------------
-# Email specialist agent — loaded for heartbeat use
-# ---------------------------------------------------------------------------
-_AGENT_FILE = os.path.join(PROJECT_DIR, ".claude", "agents", "email-specialist.md")
-
-
-def _load_email_specialist_prompt() -> str:
-    """Read the email specialist agent body (after frontmatter) for use as system prompt.
-
-    The heartbeat uses this directly as system_prompt — it needs the rules
-    (voice, classification, drafting) but not the full workflow skills.
-    """
-    try:
-        with open(_AGENT_FILE) as f:
-            content = f.read()
-        # Skip YAML frontmatter (between --- markers)
-        parts = content.split("---", 2)
-        if len(parts) >= 3:
-            return parts[2].strip()
-        return content
-    except (FileNotFoundError, OSError) as e:
-        log.warning("Could not load email specialist agent file: %s — using fallback", e)
-        return (
-            "You are [ASSISTANT_FULL_NAME], [OWNER_NAME]'s executive assistant handling email triage. "
-            "Read CLAUDE.md and email-learnings.md for context. "
-            "Check memory/ACTIVE_THREADS.md for thread-specific instructions and "
-            "memory/STATE.md for current operational context."
-        )
-
-
-EMAIL_SPECIALIST_PROMPT = compose_system_prompt(_load_email_specialist_prompt())
 
 
 # ---------------------------------------------------------------------------
@@ -794,7 +636,7 @@ async def _queue_and_process(chat_id: int, prompt: str, update: Update,
 
         # Telegram-specific streaming callbacks
         async def _tg_progress(msg: str) -> None:
-            sessions.touch_activity(key)  # Keep heartbeat from interrupting
+            sessions.touch_activity(key)  # Mark active during streaming
             # If we already have a streaming message, skip "still working"
             # messages — the live streaming text IS the progress indicator
             if _streaming_msg_id and _streaming_text:
@@ -829,22 +671,12 @@ async def _queue_and_process(chat_id: int, prompt: str, update: Update,
             _t_lock_ms = int((_t_lock_acquired - _t_lock_wait) * 1000)
             if _t_lock_ms > 100:
                 dbg.info("LOCK_ACQUIRED | waited %dms", _t_lock_ms)
-            # Inject heartbeat context if pending (AFTER log, BEFORE Claude)
-            _hb_ctx = _peek_heartbeat_context(chat_id)
-            if _hb_ctx:
-                _claude_prompt = _hb_ctx + "\n\n" + combined
-                log.info("Injected heartbeat context into prompt for chat %s", chat_id)
-            else:
-                _claude_prompt = combined
 
             _claude_prompt = inject_runtime_context(
-                _claude_prompt,
+                combined,
                 _telegram_runtime_context(
                     chat_id,
                     purpose="Direct Telegram chat with [OWNER_NAME]",
-                    extra_lines=[
-                        "Pending heartbeat context is injected below when present."
-                    ] if _hb_ctx else None,
                 ),
             )
 
@@ -874,11 +706,6 @@ async def _queue_and_process(chat_id: int, prompt: str, update: Update,
         current_sid, _ = sessions.get_session(key)
         _sid = current_sid[:8] if current_sid else ""
         _engine_error = _is_engine_failure(response)
-
-        # Consume heartbeat context AFTER successful Claude processing
-        if _hb_ctx and not _engine_error:
-            _mark_heartbeats_consumed(chat_id)
-            log.info("Marked heartbeat context consumed for chat %s", chat_id)
 
     # Extract [SEND_IMAGE:...] markers and send those images
     response, marker_images = extract_image_markers(response)
@@ -1173,14 +1000,11 @@ async def cmd_new(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @authorized
 async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """/status — quick email + calendar status."""
+    """/status — quick calendar status."""
     chat_id = update.effective_chat.id
     key = _session_key(chat_id)
     _log_command_request(update, command="status")
-    prompt = (
-        "Give me a quick status: how many unread emails do I have, "
-        "and what's on my calendar for today? Be brief."
-    )
+    prompt = "What's on my calendar for today? Be brief."
     resolved_model = None
     sessions.touch_activity(key)
     try:
@@ -1214,52 +1038,6 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         _set_failed_request(chat_id, None)
     await _reply_command(update, response, command="status")
-
-
-@authorized
-async def cmd_inbox(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """/inbox — process inbox."""
-    chat_id = update.effective_chat.id
-    key = _session_key(chat_id)
-    _log_command_request(update, command="inbox")
-    prompt = (
-        "Check my inbox. Show me unread emails that need attention, "
-        "classify them by priority, and draft replies for anything "
-        "urgent. Archive obvious noise."
-    )
-    resolved_model = None
-    sessions.touch_activity(key)
-    try:
-        await update.message.chat.send_action("typing")
-    except TelegramError:
-        pass
-    async with sessions.get_lock(key):
-        session_id, is_new = sessions.get_session(key)
-        async with _claude_lock:
-            loop = asyncio.get_running_loop()
-            response = await loop.run_in_executor(
-                None,
-                lambda: run_assistant(
-                    inject_runtime_context(
-                        prompt,
-                        _telegram_runtime_context(
-                            chat_id,
-                            purpose="Telegram inbox triage",
-                        ),
-                    ),
-                    system_prompt=EA_SYSTEM_PROMPT,
-                    session_id=session_id, is_new_session=is_new,
-                    session_manager=sessions,
-                    session_key=key,
-                    model=resolved_model,
-                ),
-            )
-    if _is_engine_failure(response):
-        _set_failed_request(chat_id, {"kind": "prompt", "prompt": prompt})
-        response = _with_failure_guidance(response)
-    else:
-        _set_failed_request(chat_id, None)
-    await _reply_command(update, response, command="inbox")
 
 
 PLAN_PROMPT_TEMPLATE = """\
@@ -1611,8 +1389,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Available commands:\n\n"
         "/help — show this list\n"
         "/new — start a fresh conversation (saves memory first)\n"
-        "/status — quick email + calendar overview\n"
-        "/inbox — process and triage inbox\n"
+        "/status — quick calendar overview\n"
         "/plan <task> — research and write an implementation plan\n"
         "/execute — execute the active plan\n"
         "/research <question> — research a topic (Sonnet, faster)\n"
@@ -1620,144 +1397,9 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/cancel — stop the running task\n"
         "/usage — show 5h + weekly usage remaining\n"
         "/context — show context window usage\n"
-        "/heartbeat — manually check for new emails\n"
         "\nYou can also just send a regular message and I'll handle it."
     )
     await _reply_command(update, text, command="help")
-
-
-@authorized
-async def cmd_heartbeat(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """/heartbeat — manually trigger the heartbeat check."""
-    sessions.touch_activity(_session_key(update.effective_chat.id))
-    _log_command_request(update, command="heartbeat")
-    try:
-        await update.message.chat.send_action("typing")
-    except TelegramError:
-        pass
-    await _reply_command(update, "Checking emails...", command="heartbeat")
-    await run_heartbeat_triage(bot=context.bot)
-
-
-# ---------------------------------------------------------------------------
-# Heartbeat — proactive email/calendar check
-# ---------------------------------------------------------------------------
-
-HEARTBEAT_TRIAGE_PROMPT = """\
-Check [ASSISTANT_NAME]'s inbox ([ASSISTANT_EMAIL]) for new unread emails.
-
-FOR EACH UNREAD EMAIL in [ASSISTANT_EMAIL]:
-- Check ACTIVE_THREADS.md for thread-specific auto-reply instructions.
-- If you can handle it (scheduling, info requests, simple questions): reply as [ASSISTANT_NAME].
-- If it's sensitive, private, financial, or unsure: note it for [OWNER_NAME].
-- You have READ access to [OWNER_NAME]'s calendar, contacts, and email history for context.
-
-RESPONSE:
-- If NOTHING needs attention: respond with exactly HEARTBEAT_SKIP
-- If something IS noteworthy: write a brief summary.
-  Group by: \u2705 Handled \u2192 \u27a1\ufe0f Forwarded to [OWNER_NAME] \u2192 \u2753 Needs your input.
-  Keep under 300 words.
-"""
-
-
-HEARTBEAT_SESSION_KEY = "heartbeat:[EMAIL_ACCOUNT_KEY]"
-HEARTBEAT_MAX_AGE_HOURS = 24
-
-
-def _heartbeat_session_age() -> float:
-    """Return age of heartbeat session in hours (based on last activity)."""
-    last = sessions._last_activity.get(HEARTBEAT_SESSION_KEY)
-    if not last:
-        return float('inf')
-    return (datetime.now() - last).total_seconds() / 3600
-
-
-async def run_heartbeat_triage(bot=None) -> None:
-    """Run heartbeat triage with a persistent session.
-
-    Uses a dedicated session that persists across runs so the heartbeat
-    remembers what it already handled. Auto-resets after 24h.
-    Acquires the global Claude lock to prevent project-lock contention.
-    """
-    # Check if assistant is already running — skip rather than block
-    if _claude_lock.locked():
-        log.info("Heartbeat: skipping — assistant process already running")
-        return
-
-    async with _claude_lock:
-        session_id, is_new = sessions.get_session(HEARTBEAT_SESSION_KEY)
-
-        # Auto-reset stale heartbeat sessions
-        if not is_new and _heartbeat_session_age() > HEARTBEAT_MAX_AGE_HOURS:
-            log.info("Heartbeat: session older than %dh, consolidating and resetting",
-                     HEARTBEAT_MAX_AGE_HOURS)
-            prev_session = sessions.get_previous_session(HEARTBEAT_SESSION_KEY)
-            if prev_session:
-                loop = asyncio.get_running_loop()
-                consolidation = await loop.run_in_executor(
-                    None, lambda: consolidate_session(
-                        prev_session, system_prompt=EMAIL_SPECIALIST_PROMPT,
-                        session_manager=sessions, session_key=HEARTBEAT_SESSION_KEY))
-                if consolidation.status == "failed":
-                    log.warning(
-                        "Heartbeat: consolidation failed, keeping existing session %s",
-                        prev_session[:8],
-                    )
-                else:
-                    session_id = sessions.reset_session(HEARTBEAT_SESSION_KEY)
-                    is_new = True
-            else:
-                session_id = sessions.reset_session(HEARTBEAT_SESSION_KEY)
-                is_new = True
-
-        sessions.touch_activity(HEARTBEAT_SESSION_KEY)
-        dbg.info("HEARTBEAT | session=%s (%s)",
-                 (session_id[:8] if session_id else "new"),
-                 "new" if is_new else "resume")
-
-        # Must pass a callback to force streaming mode (not blocking run_in_executor)
-        # so the asyncio _claude_lock is held for the entire duration.
-        async def _heartbeat_progress(msg: str) -> None:
-            log.info("Heartbeat: %s", msg)
-
-        triage = await run_assistant_streaming(
-            inject_runtime_context(
-                HEARTBEAT_TRIAGE_PROMPT,
-                build_runtime_context(
-                    channel="heartbeat",
-                    chat_id=HEARTBEAT_SESSION_KEY,
-                    session_key=HEARTBEAT_SESSION_KEY,
-                    purpose="Unread email triage for [ASSISTANT_EMAIL]",
-                ),
-            ),
-            system_prompt=EMAIL_SPECIALIST_PROMPT,
-            session_id=session_id,
-            is_new_session=is_new,
-            session_manager=sessions,
-            session_key=HEARTBEAT_SESSION_KEY,
-            progress_callback=_heartbeat_progress,
-            model=resolved_model,
-        )
-
-    if "HEARTBEAT_SKIP" in triage:
-        log.info("Heartbeat: nothing noteworthy")
-        return
-
-    # Don't forward timeout messages to chat — they're noise, not results
-    if "timed out" in triage.lower():
-        log.warning("Heartbeat: triage timed out, not forwarding: %s",
-                     triage[:200])
-        return
-
-    log_message(ch="telegram", dir="out", from_="assistant",
-                type_="heartbeat", msg=triage)
-
-    log.info("Heartbeat: something noteworthy, notifying")
-    if bot:
-        for chat_id in ALLOWED_CHAT_IDS:
-            _save_heartbeat_outbound(chat_id, triage)
-            await _safe_send(bot, chat_id, triage)
-            log.info("Heartbeat: notification sent to chat %s", chat_id)
 
 
 # ---------------------------------------------------------------------------
@@ -1793,11 +1435,7 @@ def _migrate_sessions_if_needed() -> None:
 
 async def _handle_queued_task(task) -> None:
     """Task queue consumer handler — dispatches tasks by type."""
-    if task.task_type == "heartbeat_triage":
-        bot = task.payload.get("bot")
-        await run_heartbeat_triage(bot=bot)
-    else:
-        log.warning("Unknown task type: %s", task.task_type)
+    log.warning("Unknown task type: %s", task.task_type)
 
 
 def _cleanup_orphaned_processes():
@@ -1815,10 +1453,10 @@ def _cleanup_orphaned_processes():
     killed = 0
     try:
         import subprocess as sp
-        # Find zombie python processes running claude_mail/email_service scripts
+        # Find zombie python processes from old Claude subprocesses
         # that have init (PID 1) or launchd as parent (orphaned)
         result = sp.run(
-            ["pgrep", "-f", "claude_mail|email_service|EmailService"],
+            ["pgrep", "-f", "telegram_bot"],
             capture_output=True, text=True, timeout=5
         )
         if result.stdout.strip():
@@ -1847,9 +1485,9 @@ def _cleanup_orphaned_processes():
 
 
 def main():
-    global task_queue, watcher
+    global task_queue
 
-    log.info("Starting Telegram bot bridge for Claude Code EA")
+    log.info("Starting Telegram bot bridge for Claude Code")
     log.info("Project dir: %s", PROJECT_DIR)
 
     integrity = prepare_runtime_environment()
@@ -1868,16 +1506,14 @@ def main():
     _migrate_sessions_if_needed()
     sessions.load()
 
-    # Initialize task queue and watcher
+    # Initialize task queue
     task_queue = TaskQueue()
-    watcher = HeartbeatWatcher(task_queue)
 
     async def post_init(application):
         await application.bot.set_my_commands([
             BotCommand("help", "Show available commands"),
             BotCommand("new", "Start a fresh conversation"),
-            BotCommand("status", "Quick email + calendar overview"),
-            BotCommand("inbox", "Process and triage inbox"),
+            BotCommand("status", "Quick calendar overview"),
             BotCommand("plan", "Research and write an implementation plan"),
             BotCommand("execute", "Execute the active plan"),
             BotCommand("research", "Research a topic (Sonnet, faster)"),
@@ -1885,24 +1521,12 @@ def main():
             BotCommand("cancel", "Stop the running task"),
             BotCommand("usage", "Show 5h + weekly usage remaining"),
             BotCommand("context", "Show context window usage"),
-            BotCommand("heartbeat", "Check for new emails"),
         ])
 
-        # Inject bot reference into watcher tasks so heartbeat can send messages
-        original_enqueue = task_queue.enqueue
-
-        def _enqueue_with_bot(priority, task_type, **payload):
-            if task_type == "heartbeat_triage":
-                payload["bot"] = application.bot
-            original_enqueue(priority, task_type, **payload)
-
-        task_queue.enqueue = _enqueue_with_bot
-
-        # Start background tasks: queue consumer + watcher loop
+        # Start background task queue consumer
         _bg_tasks.append(asyncio.create_task(
             task_queue.start_consumer(_handle_queued_task)))
-        _bg_tasks.append(asyncio.create_task(watcher.run_loop()))
-        log.info("Task queue consumer and watcher started")
+        log.info("Task queue consumer started")
 
     async def pre_shutdown(application):
         """Cancel background tasks cleanly on shutdown."""
@@ -1920,7 +1544,6 @@ def main():
     app.add_handler(CommandHandler("help", cmd_help))
     app.add_handler(CommandHandler("new", cmd_new))
     app.add_handler(CommandHandler("status", cmd_status))
-    app.add_handler(CommandHandler("inbox", cmd_inbox))
     app.add_handler(CommandHandler("plan", cmd_plan))
     app.add_handler(CommandHandler("execute", cmd_execute))
     app.add_handler(CommandHandler("research", cmd_research))
@@ -1928,7 +1551,6 @@ def main():
     app.add_handler(CommandHandler("cancel", cmd_cancel))
     app.add_handler(CommandHandler("usage", cmd_usage))
     app.add_handler(CommandHandler("context", cmd_context))
-    app.add_handler(CommandHandler("heartbeat", cmd_heartbeat))
 
     # Photos -> Save to disk + let Claude see them
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
