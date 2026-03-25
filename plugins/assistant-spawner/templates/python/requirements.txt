@@ -1,0 +1,9 @@
+# Core dependencies for Telegram bot ↔ Claude Code bridge
+# Install with: pip install -r requirements.txt
+
+# Telegram bot
+python-telegram-bot~=22.6
+
+# Utilities
+python-dotenv~=1.0.0
+click~=8.1.0

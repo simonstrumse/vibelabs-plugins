@@ -1,0 +1,10 @@
+{
+  "name": "assistant-spawner",
+  "description": "Spawn a new AI executive assistant with Telegram bot and memory system. Guided setup via /spawn-assistant.",
+  "version": "1.2.0",
+  "author": {
+    "name": "Simon Strumse"
+  },
+  "repository": "https://github.com/simonstrumse/vibelabs-plugins",
+  "license": "MIT"
+}

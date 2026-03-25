@@ -1,0 +1,32 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "vibelabs-plugins",
+  "description": "Vibe Labs Claude Code plugins — AI assistant spawner, Instagram analysis, and more",
+  "owner": {
+    "name": "Simon Strumse"
+  },
+  "plugins": [
+    {
+      "name": "assistant-spawner",
+      "description": "Spawn a new AI executive assistant with Telegram bot, heartbeat, and memory system. Guided conversational setup via /spawn-assistant.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Simon Strumse"
+      },
+      "source": "./plugins/assistant-spawner",
+      "category": "productivity",
+      "homepage": "https://github.com/simonstrumse/vibelabs-plugins"
+    },
+    {
+      "name": "instaskill",
+      "description": "Turn your Instagram saved posts into a searchable, analyzable archive. Sync, analyze, deep dive, and extract structured data from video.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Simon Strumse"
+      },
+      "source": "./plugins/instaskill",
+      "category": "productivity",
+      "homepage": "https://github.com/simonstrumse/instaskill"
+    }
+  ]
+}

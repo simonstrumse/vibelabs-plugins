@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'OPTIONAL: If significant work was done (feature, fix, decision), consider updating CHANGELOG.md. Skip for Q&A or minor work.'"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Read CHANGELOG.md Current State section to understand where the project is. Check TASKS.md for active tasks. Do not redo completed work.'"
+          }
+        ]
+      }
+    ]
+  }
+}
