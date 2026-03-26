@@ -1,0 +1,8 @@
+{
+  "name": "github-multi-account",
+  "description": "Auto-check and switch GitHub accounts before git push. Prevents 'Repository not found' errors when working with repos across multiple GitHub accounts.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Simon Strumse"
+  }
+}
