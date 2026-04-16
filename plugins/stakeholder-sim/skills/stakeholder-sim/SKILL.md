@@ -10,6 +10,8 @@ description: >
   "how would X react", "stakeholder simulation", "press release test",
   "pre-flight", "red team this release", "synthetic focus group for comms".
 allowed-tools: Read, Glob, Grep, Bash, Write, Task
+model: claude-opus-4-6
+effort: high
 ---
 
 # Stakeholder-sim orchestrator
@@ -180,15 +182,35 @@ Output: `verification.md`.
 
 ---
 
-## Phase 6 — Present
+## Phase 6 — Deliver
 
 1. Present `report.md` to the user inline (not just a path). Truncate cleanly at ~1500 words with a pointer to the full file.
 2. Report the verification summary ("All N quotes verified" or "N quotes corrected").
-3. Offer follow-ups:
+3. **Offer output formats.** The markdown report is already written. Ask the user which additional deliverables to produce:
+   - **Markdown** (`report.md`) — already produced; always available
+   - **PDF** — crisis-PR-agency-grade board report, rendered via `Agent(pdf-renderer)`. Use when leadership will read the full assessment (CEO / Chair / Board).
+   - **PowerPoint** — executive board deck (12-16 slides, McKinsey-style), rendered via `Agent(pptx-generator)`. Use when the brief will be presented live (EVP Comms meeting, board slot).
+   - **Both PDF and PPTX** — the typical crisis-PR-agency pairing. Default for high-stakes runs.
+
+   If the user picks PDF or PPTX (or both), collect the `prepared_for` list (named executives) once and pass to each renderer. A reasonable default if the user doesn't specify: `prepared_for: <sender CEO>, <sender Chair>, <sender EVP Comms>` inferred from the ground-truth file.
+
+4. Spawn the chosen renderer(s). Renderers can run in parallel — PDF and PPTX generation are independent.
+
+   ```
+   Agent(pdf-renderer): run_dir, output_path=<run_dir>/deliverable.pdf, client_identifier, prepared_for, style_guide, reference_html
+   Agent(pptx-generator): run_dir, output_path=<run_dir>/deliverable.pptx, client_identifier, prepared_for, style_guide
+   ```
+
+5. When renderers complete, present the file paths to the user and offer to open them:
+   - macOS: `open <path>`
+   - Windows / Linux: user opens manually
+
+6. Offer follow-ups:
    - Add a specific missing persona and re-run that persona only
    - Deep-dive on a disagreement axis (adversarial-pairing round between two named personas)
    - Revise the stimulus based on the report and re-run end-to-end
    - Save the run's persona bundles as a new preset (offer the path: `presets/<new-preset>/`)
+   - Re-render deliverables (PDF/PPTX) after a stimulus revision
 
 ---
 
@@ -210,6 +232,7 @@ Output: `verification.md`.
 
 - **Orchestrator (you):** Opus 4.6 with high effort. You are doing coordination, not content.
 - **Research agents** (stimulus-analyzer, client-researcher, stakeholder-mapper, persona-builder): Sonnet 4.6. Extraction and classification are a Sonnet-level task.
+- **Renderer agents** (pdf-renderer, pptx-generator): Sonnet 4.6. Production of the PDF and PPTX deliverables.
 - **Persona workers, critic:** Sonnet 4.6. Many in parallel.
 - **Synthesizer:** Opus 4.6 with high effort. The synthesis is the hard-reasoning step.
 - **Quote verifier:** Sonnet 4.6. Judgment-based comparison.
