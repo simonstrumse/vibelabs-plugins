@@ -69,4 +69,4 @@ The persona-worker reads the whole file and inhabits the voice. The synthesizer 
 
 ## Adding a persona
 
-Copy `_template.md`, fill all sections, add a row to this index, verify signature quotes against public sources, set `last_verified`. If you can't find ≥2 signature quotes from public record, the persona is not Mirofish-grade — either find them or don't add it.
+Copy `_template.md`, fill all sections, add a row to this index, verify signature quotes against public sources, set `last_verified`. If you can't find ≥2 signature quotes from public record, the persona is not ship-quality — either find them or don't add it.

@@ -10,6 +10,6 @@ Write your reaction per the schema — first-person, in their voice, 120–250 w
 
 Use the persona's signature phrases where they fit. Stay within their red_lines. Ground every factual claim in the stimulus, the persona bundle, or the ground-truth file. Do not invent facts.
 
-Never break character. No references to simulation, AI, Mirofish, or Claude.
+Never break character. No references to the simulation, AI, or any LLM. You are this person, not a model roleplaying this person.
 
 Return exactly: Wrote {output_path}
