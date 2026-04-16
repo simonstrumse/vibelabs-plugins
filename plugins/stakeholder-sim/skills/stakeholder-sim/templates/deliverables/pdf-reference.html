@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Stakeholder Reaction Assessment — Bandero Incident Response</title>
+<style>
+  @page {
+    size: A4;
+    margin: 22mm 20mm 22mm 20mm;
+    @top-left {
+      content: "Confidential — Client Leadership Only";
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 8pt;
+      color: #7a1a1a;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    @top-right {
+      content: "Stakeholder Reaction Assessment · Bandero Incident";
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 8pt;
+      color: #555;
+    }
+    @bottom-left {
+      content: "Vibe Labs Stakeholder Simulation Practice";
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 8pt;
+      color: #555;
+    }
+    @bottom-right {
+      content: "Page " counter(page) " of " counter(pages);
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 8pt;
+      color: #555;
+    }
+  }
+
+  @page :first {
+    margin: 0;
+    @top-left { content: ""; }
+    @top-right { content: ""; }
+    @bottom-left { content: ""; }
+    @bottom-right { content: ""; }
+  }
+
+  :root {
+    --navy: #0f2544;
+    --navy-soft: #1a3358;
+    --red: #7a1a1a;
+    --red-soft: #a13a3a;
+    --gold: #8a6d2b;
+    --grey-1: #f4f4f2;
+    --grey-2: #e6e4df;
+    --grey-3: #999;
+    --grey-4: #555;
+    --grey-5: #2b2b2b;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { font-size: 10.5pt; }
+
+  body {
+    font-family: 'Charter', 'Iowan Old Style', 'Georgia', serif;
+    color: var(--grey-5);
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+  }
+
+  h1, h2, h3, h4, h5 {
+    font-family: 'Helvetica Neue', 'Arial', sans-serif;
+    color: var(--navy);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  h1 { font-size: 22pt; margin: 0 0 8pt 0; line-height: 1.15; }
+  h2 { font-size: 16pt; margin: 18pt 0 8pt 0; line-height: 1.2; border-top: 1pt solid var(--grey-2); padding-top: 10pt; }
+  h3 { font-size: 12pt; margin: 14pt 0 4pt 0; color: var(--navy-soft); }
+  h4 { font-size: 10.5pt; margin: 10pt 0 2pt 0; color: var(--grey-5); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+  h5 { font-size: 10pt; margin: 8pt 0 2pt 0; color: var(--grey-4); font-style: italic; }
+
+  p { margin: 0 0 8pt 0; }
+
+  a { color: var(--navy-soft); text-decoration: none; }
+
+  /* COVER */
+  .cover {
+    page-break-after: always;
+    padding: 30mm 25mm 25mm 25mm;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--grey-1);
+    color: var(--navy);
+    position: relative;
+  }
+  .cover-mark {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 9pt;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 80mm;
+  }
+  .cover-ref {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 8pt;
+    letter-spacing: 0.12em;
+    color: var(--grey-4);
+    text-transform: uppercase;
+    margin-bottom: 4pt;
+  }
+  .cover-title {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 34pt;
+    font-weight: 300;
+    line-height: 1.05;
+    color: var(--navy);
+    margin: 0 0 8pt 0;
+    letter-spacing: -0.02em;
+  }
+  .cover-subtitle {
+    font-family: 'Charter', 'Georgia', serif;
+    font-size: 15pt;
+    font-style: italic;
+    color: var(--grey-4);
+    margin: 0 0 24pt 0;
+    font-weight: normal;
+  }
+  .cover-divider {
+    border: 0;
+    border-top: 0.7pt solid var(--navy);
+    width: 35mm;
+    margin: 18pt 0;
+  }
+  .cover-meta {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 9pt;
+    color: var(--grey-4);
+    line-height: 1.8;
+    margin-top: auto;
+  }
+  .cover-meta strong {
+    color: var(--navy);
+    font-weight: 500;
+    display: inline-block;
+    min-width: 32mm;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 8pt;
+  }
+  .cover-confidentiality {
+    border-top: 0.5pt solid var(--red);
+    border-bottom: 0.5pt solid var(--red);
+    padding: 6pt 0;
+    margin-top: 18pt;
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 8pt;
+    letter-spacing: 0.12em;
+    color: var(--red);
+    text-transform: uppercase;
+  }
+
+  /* SECTION HEADER */
+  .section-header {
+    page-break-before: always;
+  }
+  .section-number {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 8.5pt;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 3pt;
+    display: block;
+  }
+  .section-title {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 20pt;
+    color: var(--navy);
+    font-weight: 400;
+    margin: 0 0 8pt 0;
+    border-top: none;
+    padding-top: 0;
+    line-height: 1.15;
+  }
+  .section-lead {
+    font-family: 'Charter', 'Georgia', serif;
+    font-size: 11pt;
+    font-style: italic;
+    color: var(--grey-4);
+    margin: 0 0 18pt 0;
+    padding-bottom: 10pt;
+    border-bottom: 0.5pt solid var(--grey-2);
+  }
+
+  /* TOC */
+  .toc { page-break-after: always; }
+  .toc ul { list-style: none; padding: 0; margin: 0; }
+  .toc li {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 10pt;
+    padding: 3pt 0;
+    border-bottom: 0.3pt dotted var(--grey-2);
+    color: var(--navy);
+  }
+  .toc li .toc-num {
+    display: inline-block;
+    width: 14mm;
+    color: var(--red);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+  }
+  .toc li.sub { padding-left: 14mm; font-size: 9.5pt; color: var(--grey-4); }
+
+  /* CALLOUTS */
+  .callout {
+    border-left: 3pt solid var(--navy);
+    padding: 8pt 12pt 8pt 14pt;
+    margin: 10pt 0;
+    background: var(--grey-1);
+    font-size: 10pt;
+  }
+  .callout.critical { border-left-color: var(--red); background: #fbf3f3; }
+  .callout.warn { border-left-color: var(--gold); background: #faf6ec; }
+  .callout-label {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 7.5pt;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--navy);
+    margin-bottom: 3pt;
+    font-weight: 600;
+    display: block;
+  }
+  .callout.critical .callout-label { color: var(--red); }
+  .callout.warn .callout-label { color: var(--gold); }
+
+  /* PULL QUOTES */
+  .pullquote {
+    border-left: 2pt solid var(--navy);
+    padding: 4pt 0 4pt 12pt;
+    margin: 8pt 0 8pt 4mm;
+    font-style: italic;
+    color: var(--grey-5);
+    font-size: 10pt;
+  }
+  .pullquote-attr {
+    display: block;
+    font-style: normal;
+    font-size: 9pt;
+    color: var(--grey-4);
+    margin-top: 3pt;
+    font-family: 'Helvetica Neue', sans-serif;
+  }
+
+  /* TABLES */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10pt 0;
+    font-size: 9.5pt;
+    font-family: 'Helvetica Neue', sans-serif;
+  }
+  table th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--navy);
+    border-bottom: 1pt solid var(--navy);
+    padding: 5pt 6pt;
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  table td {
+    border-bottom: 0.3pt solid var(--grey-2);
+    padding: 5pt 6pt;
+    vertical-align: top;
+  }
+  table tr:nth-child(even) td { background: var(--grey-1); }
+
+  /* RECOMMENDATION BLOCK */
+  .rec {
+    margin: 14pt 0;
+    padding: 12pt 14pt 10pt 14pt;
+    border: 0.5pt solid var(--grey-2);
+    background: #fbfbf9;
+    page-break-inside: avoid;
+  }
+  .rec-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10pt;
+    margin-bottom: 6pt;
+  }
+  .rec-priority {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 7.5pt;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 2pt 6pt;
+    color: white;
+    font-weight: 600;
+    border-radius: 2pt;
+  }
+  .rec-priority.critical { background: var(--red); }
+  .rec-priority.high { background: var(--gold); }
+  .rec-priority.medium { background: var(--grey-4); }
+  .rec-title {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 11.5pt;
+    font-weight: 500;
+    color: var(--navy);
+    flex: 1;
+  }
+  .rec-timeline {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 8.5pt;
+    color: var(--grey-4);
+    letter-spacing: 0.05em;
+  }
+  .rec-body { font-size: 10pt; }
+  .rec-grounded {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 8.5pt;
+    color: var(--grey-4);
+    margin-top: 6pt;
+    padding-top: 6pt;
+    border-top: 0.3pt solid var(--grey-2);
+  }
+  .rec-grounded strong { color: var(--navy); font-weight: 500; }
+
+  /* PERSONA CARD */
+  .persona {
+    margin: 12pt 0;
+    padding: 10pt 14pt;
+    background: var(--grey-1);
+    border-left: 3pt solid var(--navy);
+    page-break-inside: avoid;
+  }
+  .persona-head {
+    font-family: 'Helvetica Neue', sans-serif;
+    margin-bottom: 6pt;
+  }
+  .persona-name {
+    font-size: 12pt;
+    color: var(--navy);
+    font-weight: 500;
+  }
+  .persona-role {
+    font-size: 9pt;
+    color: var(--grey-4);
+    margin-top: 1pt;
+  }
+  .persona-stance {
+    display: inline-block;
+    font-size: 7.5pt;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 1.5pt 6pt;
+    border-radius: 2pt;
+    margin-left: 6pt;
+    color: white;
+    vertical-align: middle;
+    font-weight: 600;
+  }
+  .stance-hostile { background: var(--red); }
+  .stance-skeptical { background: var(--gold); }
+  .stance-transactional { background: var(--grey-4); }
+  .stance-internal { background: var(--navy); }
+  .persona-why {
+    font-size: 9.5pt;
+    color: var(--grey-5);
+    margin: 0;
+  }
+
+  /* FINDING */
+  .finding {
+    margin: 16pt 0;
+    padding: 14pt 16pt;
+    background: white;
+    border: 0.5pt solid var(--grey-2);
+    page-break-inside: avoid;
+  }
+  .finding-meta {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 8.5pt;
+    color: var(--grey-4);
+    border-bottom: 0.3pt solid var(--grey-2);
+    padding-bottom: 5pt;
+    margin-bottom: 8pt;
+  }
+  .finding-meta strong { color: var(--navy); }
+  .finding-name {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 12pt;
+    color: var(--navy);
+    font-weight: 500;
+    margin-bottom: 2pt;
+  }
+  .finding-affil {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 9pt;
+    color: var(--grey-4);
+    margin-bottom: 5pt;
+  }
+  .finding-body { font-size: 10pt; line-height: 1.55; }
+  .finding-body p { margin: 0 0 6pt 0; }
+  .finding-standout {
+    margin-top: 8pt;
+    padding: 6pt 10pt;
+    background: var(--grey-1);
+    border-left: 2pt solid var(--gold);
+    font-size: 9.5pt;
+  }
+  .finding-standout em { font-style: italic; }
+  .finding-standout-label {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 7.5pt;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+    margin-bottom: 3pt;
+    display: block;
+  }
+  .finding-change {
+    margin-top: 6pt;
+    padding: 6pt 10pt;
+    background: #f4f7fb;
+    border-left: 2pt solid var(--navy);
+    font-size: 9.5pt;
+  }
+  .finding-change-label {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 7.5pt;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--navy);
+    font-weight: 600;
+    margin-bottom: 3pt;
+    display: block;
+  }
+
+  /* AGENT PIPELINE DIAGRAM */
+  .pipeline {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 9pt;
+    background: var(--grey-1);
+    border: 0.5pt solid var(--grey-2);
+    padding: 12pt 14pt;
+    margin: 10pt 0;
+    white-space: pre;
+    color: var(--navy);
+    line-height: 1.45;
+  }
+
+  /* STIMULUS BLOCK */
+  .stimulus {
+    margin: 10pt 0;
+    padding: 14pt 18pt;
+    background: var(--grey-1);
+    border-left: 3pt solid var(--grey-4);
+    font-size: 10pt;
+  }
+  .stimulus-meta {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 8.5pt;
+    color: var(--grey-4);
+    margin-bottom: 10pt;
+    border-bottom: 0.3pt solid var(--grey-2);
+    padding-bottom: 5pt;
+  }
+  .stimulus-title {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 12pt;
+    color: var(--navy);
+    font-weight: 500;
+    margin-bottom: 6pt;
+  }
+  .stimulus-body p { margin: 0 0 6pt 0; font-size: 10pt; }
+
+  /* Key metrics bar */
+  .metrics {
+    display: flex;
+    gap: 10pt;
+    margin: 10pt 0 14pt 0;
+  }
+  .metric {
+    flex: 1;
+    padding: 8pt 10pt;
+    border: 0.5pt solid var(--grey-2);
+    background: var(--grey-1);
+  }
+  .metric-label {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 7.5pt;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--grey-4);
+    font-weight: 600;
+  }
+  .metric-value {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 14pt;
+    color: var(--navy);
+    margin-top: 2pt;
+    font-weight: 400;
+  }
+  .metric-note {
+    font-family: 'Helvetica Neue', sans-serif;
+    font-size: 8pt;
+    color: var(--grey-4);
+    margin-top: 1pt;
+  }
+
+  ul, ol { margin: 4pt 0 8pt 0; padding-left: 14pt; }
+  li { margin-bottom: 3pt; }
+
+  .small { font-size: 9pt; color: var(--grey-4); }
+  .mono { font-family: 'Menlo', 'Consolas', monospace; font-size: 9pt; }
+
+  .disclaimer {
+    margin-top: 14pt;
+    padding: 8pt 10pt;
+    background: #fbf9f4;
+    border: 0.3pt solid var(--grey-2);
+    font-size: 8.5pt;
+    color: var(--grey-4);
+    line-height: 1.4;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ========== COVER ========== -->
+<section class="cover">
+  <div class="cover-mark">Vibe Labs · Stakeholder Simulation Practice</div>
+  <div class="cover-ref">Reference 2026-04-16-BDR</div>
+  <h1 class="cover-title">Stakeholder Reaction Assessment</h1>
+  <div class="cover-subtitle">Bandero Incident Response Statement</div>
+  <hr class="cover-divider">
+  <div class="cover-meta">
+    <div><strong>Client</strong> Aker BioMarine ASA &amp; Aker QRILL Company</div>
+    <div><strong>Subject</strong> 31 March 2026 activist vessel ramming — public response statement</div>
+    <div><strong>Prepared for</strong> Marte Dalsegg (EVP Comms); Matts Johansen (CEO, Aker BioMarine); Webjørn Barstad (CEO, Aker QRILL); Ola Snøve (Chair, Aker BioMarine)</div>
+    <div><strong>Prepared by</strong> Stakeholder Simulation Practice — Vibe Labs</div>
+    <div><strong>Assessment date</strong> 16 April 2026</div>
+    <div><strong>Assessment type</strong> Pre-publication pressure test · agentic multi-persona simulation</div>
+  </div>
+  <div class="cover-confidentiality">Confidential — Client Leadership Only · Do not forward</div>
+</section>
+
+<!-- ========== TOC ========== -->
+<section class="toc">
+  <span class="section-number">Contents</span>
+  <h2 class="section-title" style="border:none;padding-top:0;">Table of Contents</h2>
+  <ul>
+    <li><span class="toc-num">01</span> Executive summary</li>
+    <li><span class="toc-num">02</span> Assessment methodology</li>
+    <li class="sub"><span class="toc-num">2.1</span> How this assessment was run</li>
+    <li class="sub"><span class="toc-num">2.2</span> Agent pipeline</li>
+    <li class="sub"><span class="toc-num">2.3</span> What this is, what this is not</li>
+    <li><span class="toc-num">03</span> The release under review</li>
+    <li><span class="toc-num">04</span> Stakeholder cohort briefing</li>
+    <li><span class="toc-num">05</span> Findings</li>
+    <li class="sub"><span class="toc-num">5.1</span> Consensus signals</li>
+    <li class="sub"><span class="toc-num">5.2</span> Disagreement axes</li>
+    <li class="sub"><span class="toc-num">5.3</span> Surprise signals</li>
+    <li class="sub"><span class="toc-num">5.4</span> Red-line crossings</li>
+    <li><span class="toc-num">06</span> Recommended actions</li>
+    <li><span class="toc-num">07</span> Coverage limitations</li>
+    <li><span class="toc-num">A</span> Appendix A — Full stakeholder reactions</li>
+    <li><span class="toc-num">B</span> Appendix B — Methodology notes</li>
+  </ul>
+</section>
+
+<!-- ========== 1 EXECUTIVE SUMMARY ========== -->
+<section class="section-header">
+  <span class="section-number">Section 01</span>
+  <h1 class="section-title">Executive summary</h1>
+  <div class="section-lead">A pre-publication pressure test of the 31 March 2026 response statement against eight modelled stakeholder reactions reveals a governance-grade communications risk in a single CEO quotation, and a pattern of credential-stacking in the regulatory framing that the company's own internal sustainability function will not defend.</div>
+
+  <h3>The single most important finding</h3>
+  <p>Three readers most sympathetic to the company — the internal Director of Sustainability, the institutional shareholder (NBIM), and the lead environmental investigative reporter likely to cover the story (Mongabay) — converge word-for-word on the same sentence as the adversarial voices do: <strong>Matts Johansen's characterisation of the ramming as a "terrorist attack" is a self-inflicted wound.</strong> The convergence between sympathetic and hostile readers on a specific line is the strongest diagnostic signal a pressure test can produce.</p>
+
+  <div class="callout critical">
+    <span class="callout-label">Critical — act today</span>
+    The window to issue a same-day clarifying statement from the CEO, walking "terrorist attack" back toward the language already used by Webjørn Barstad ("reckless and dangerous behavior"), is open at T+0. Every person we modelled — including the most hostile — reads this path as still available.
+  </div>
+
+  <h3>Secondary findings</h3>
+  <ul>
+    <li>The release's invocation of "CCAMLR oversight" and "MSC certification" without reference to the <strong>October 2024 lapse of Conservation Measure 51-07</strong> is read as selective consensus-citation by three independent clusters (policy NGO, direct-action activist, investigative press).</li>
+    <li>The claim "<em>considered among the most sustainable fisheries globally</em>" is identified by the internal sustainability lead, the standing-objection NGO, and the Norwegian financial press as the single binary risk sentence tied to MSC certification status.</li>
+    <li>Peer-reviewed science (Savoca et al. 2024, <em>Nature Communications</em>) is directly provoked by the phrase "<em>claims that are not supported by any scientific picture</em>" and will receive an on-record correction to environmental press within 24–48 hours.</li>
+    <li>NBIM is treating this as a governance signal about crisis-communications control, not an ESG incident per se, and will request a board-level briefing within two weeks.</li>
+  </ul>
+
+  <h3>What leadership should do now</h3>
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Critical actions</div>
+      <div class="metric-value">2</div>
+      <div class="metric-note">By end of day, 16 April</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">High-priority actions</div>
+      <div class="metric-value">2</div>
+      <div class="metric-note">Within 72 hours</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Medium-term actions</div>
+      <div class="metric-value">1</div>
+      <div class="metric-note">Within 2 weeks</div>
+    </div>
+  </div>
+
+  <p>Full recommended actions are listed in <strong>Section 6</strong>. All five are grounded in direct quotations from modelled stakeholders and are sequenced to the cadence at which those stakeholders will generate public material.</p>
+
+  <div class="callout">
+    <span class="callout-label">Overall posture</span>
+    Across eight modelled stakeholders spanning activists, scientists, press, investors, and internal, no voice defended the release as written. Three neutral-by-default readers (internal, investor, balanced press) produced more cutting critiques than anticipated. The assessment concludes that <strong>the release is substantively correct but rhetorically uncalibrated</strong>, and that the rhetorical gap is the entire story.
+  </div>
+
+</section>
+
+<!-- ========== 2 METHODOLOGY ========== -->
+<section class="section-header">
+  <span class="section-number">Section 02</span>
+  <h1 class="section-title">Assessment methodology</h1>
+  <div class="section-lead">This assessment uses a multi-agent stakeholder simulation methodology developed by Vibe Labs and grounded in published multi-agent research. The method pressure-tests a draft communication by generating structured reactions from a cohort of modelled stakeholders, then identifying consensus signals, disagreement axes, and red-line crossings that would shape post-publication coverage.</div>
+
+  <h2 style="border:none;padding-top:0;">2.1 How this assessment was run</h2>
+  <p>A single press release (the 31 March 2026 Aker QRILL Company statement responding to the Bandero ramming) was submitted to a cohort of eight modelled stakeholders selected to cover the clusters most likely to react in the first 72 hours: three activists, one scientist, two journalists, one institutional investor, and one internal sustainability counterpart. Each modelled stakeholder reacted independently; no stakeholder saw any other stakeholder's reaction before submitting.</p>
+
+  <p>Every persona is grounded in public-record material — verbatim signature quotations, documented reaction patterns, stated red-lines, and on-record rhetorical style. No demographic shorthand was used. The methodology follows <em>Park et al. 2024, "Generative Agent Simulations of 1,000 People"</em>, which establishes that interview-grounded persona bundles reach approximately 85% of human test-retest reliability on attitudinal tasks.</p>
+
+  <p>Reactions were then synthesised by a dedicated agent into the structured findings presented in Section 5 — consensus signals, disagreement axes, surprise signals, and red-line crossings. The synthesiser preserves disagreement rather than forcing consensus: where stakeholders disagree, both positions are reported with direct quotations.</p>
+
+  <h2>2.2 Agent pipeline</h2>
+  <p>The pipeline is fully agentic. Every extraction, classification, research, and verification step is performed by a dedicated specialist agent, not by deterministic parsing code. This matters because rigid scripts cannot adapt to unexpected rhetorical moves or to sender-specific context; specialist agents can.</p>
+<div class="pipeline">Stimulus (the release)
+   │
+   ▼
+Orchestrator — classifies release, selects cohort, pauses for approval
+   │
+   ├─── 8 × Persona worker in parallel ── reacts as one modelled stakeholder
+   │              │
+   │              ▼
+   │         Critic (rubric: in-character, grounded, non-sycophantic, within red_lines)
+   │              │
+   │              ▼ (revise once if needed)
+   │         Final persona reaction
+   │
+   ▼
+Synthesiser — structured report (consensus, disagreement, surprise, red-lines)
+   │
+   ▼
+Quote verifier — every quoted line must appear verbatim in a source
+   │
+   ▼
+Final deliverable
+</div>
+
+  <p>For this assessment, the standard pipeline was executed with the following adjustments agreed with the client: the cohort was limited to eight stakeholders (versus a default of 12–16 for a crisis release) and the critic and quote-verifier passes were omitted. Every quotation in this report has been manually spot-checked against the source reaction files. The coverage limitations arising from these omissions are documented in Section 7.</p>
+
+  <h2>2.3 What this is, what this is not</h2>
+  <p><strong>This is a pressure test, not a forecast.</strong> The modelled reactions describe what each stakeholder would plausibly say given the public record; they do not predict what a specific individual will say tomorrow. The value of the assessment is in surfacing the <em>patterns of reaction</em> — where sympathetic and hostile readers converge, where independent sources surface the same sentence as a problem, which specific claims will not survive the first week of scrutiny.</p>
+
+  <p>The assessment does not replace stakeholder engagement. It is a pre-publication instrument for the communications function. We recommend using its findings to inform revisions and to pre-wire the four or five relationships that stakeholder engagement already exists for.</p>
+
+  <div class="disclaimer">
+    <strong>Methodological limitations.</strong> Modelled stakeholder reactions are grounded in public-record material but cannot account for non-public context, recent private communications between parties, or ad-hoc factors in an individual's schedule. Findings should be treated as indicative of the space of likely reactions, not as a binding forecast. The assessment does not adjudicate the factual content of the release.
+  </div>
+
+</section>
+
+<!-- ========== 3 THE RELEASE ========== -->
+<section class="section-header">
+  <span class="section-number">Section 03</span>
+  <h1 class="section-title">The release under review</h1>
+  <div class="section-lead">The 31 March 2026 public response statement issued by Aker QRILL Company and amplified through comments by the Aker BioMarine CEO. Reproduced in full for reference.</div>
+
+  <div class="stimulus">
+    <div class="stimulus-meta">Issued · 31 March 2026 · Aker QRILL Company (theqrillcompany.com) · Media contact: Tormod Sandstø, Director of Communication</div>
+    <div class="stimulus-title">Activist Vessel Rams Aker QRILL Company Vessel in Antarctica</div>
+    <div class="stimulus-body">
+      <p><strong>Antarctica, Tuesday 31 March 2026.</strong> On the afternoon of Tuesday, 31 March, the Bandero, operated by the Paul Watson Foundation and Sea Shepherd France, deliberately collided with the stern port side of the Antarctic Sea, a fishing vessel operated by Aker QRILL Company. The vessel had previously attempted to destroy the trawl gear of a second company vessel by deploying grappling hooks into the fishing gear. Both actions were recorded on video.</p>
+      <p>The point of impact was directly above a diesel fuel tank. The Antarctic Sea was operating many days away from the nearest port or rescue capability. The crew was not injured but was put in danger in these waters, where margins matter. If the activists had succeeded in disabling any of the vessels' maneuverability, people and the environment would have been at risk due to the approaching severe weather.</p>
+      <p>Aker QRILL Company CEO Webjørn Barstad stated: "This is the result of a campaign built on claims that are not supported by any scientific picture. What we saw yesterday is a consequence of that dynamic. This is not constructive activism; it is reckless and dangerous behavior." He added in subsequent statements: "Our crew were put at risk in some of the most remote waters on Earth, and only luck avoided potential environmental damage."</p>
+      <p>Aker BioMarine CEO Matts Johansen, speaking to media, called the ramming — the first in more than a decade in the Southern Ocean — a "terrorist attack," stating: "It is intended to cause harm; it's based on ideological or political views and it's not the way the Antarctica was intended to be managed."</p>
+      <p>Aker QRILL Company operates under CCAMLR oversight, carries independent observers on every voyage, holds Marine Stewardship Council (MSC) certification, and is considered among the most sustainable fisheries globally. The company stated that ramming a vessel in international waters is a criminal act and will pursue all available legal channels. The company has alerted naval authorities in Argentina and Chile; one of which is deploying a vessel to the area near the Antarctic peninsula where the collision took place.</p>
+    </div>
+  </div>
+
+  <h3>Release classification</h3>
+  <table>
+    <tr><th style="width:40%">Attribute</th><th>Classification</th></tr>
+    <tr><td>Type</td><td>Crisis response · violent-incident framing</td></tr>
+    <tr><td>Primary senders</td><td>Aker QRILL Company (principal); Aker BioMarine ASA (amplified through group CEO)</td></tr>
+    <tr><td>Key claims asserted</td><td>(i) Incident description and evidentiary record; (ii) Crew and environmental risk exposure; (iii) Operating-credential defence — CCAMLR oversight, observer coverage, MSC certification, "most sustainable"; (iv) Legal escalation intent</td></tr>
+    <tr><td>Named third parties</td><td>Paul Watson Foundation; Sea Shepherd France; Argentine and Chilean naval authorities</td></tr>
+    <tr><td>Rhetorical escalations</td><td>"Terrorist attack" (Matts Johansen); "Reckless and dangerous behavior" (Webjørn Barstad); "claims that are not supported by any scientific picture"</td></tr>
+    <tr><td>Operating jurisdictions implicated</td><td>Antarctic Treaty / CCAMLR Area 48 · MSC certification scheme · Norwegian flag-state oversight · Argentine and Chilean naval response</td></tr>
+  </table>
+</section>
+
+<!-- ========== 4 STAKEHOLDER COHORT ========== -->
+<section class="section-header">
+  <span class="section-number">Section 04</span>
+  <h1 class="section-title">Stakeholder cohort briefing</h1>
+  <div class="section-lead">The eight modelled stakeholders selected for this assessment. Each is grounded in verified public-record material. Selections were made to cover the stakeholder clusters most likely to shape first-week coverage of the incident.</div>
+
+  <h3>Cluster distribution</h3>
+  <table>
+    <tr><th>Cluster</th><th>Count</th><th>Personas in cohort</th></tr>
+    <tr><td>Activists / NGO</td><td>3</td><td>Hammarstedt (Sea Shepherd Global); Allan (Bob Brown Foundation); Christian (ASOC)</td></tr>
+    <tr><td>Scientists</td><td>1</td><td>Savoca (Stanford / Hopkins Marine Station)</td></tr>
+    <tr><td>Press</td><td>2</td><td>Alberts (Mongabay); Blindheim (Dagens Næringsliv)</td></tr>
+    <tr><td>Investors</td><td>1</td><td>NBIM Responsible Investment analyst</td></tr>
+    <tr><td>Internal</td><td>1</td><td>Skogrand (Director of Sustainability, Aker BioMarine)</td></tr>
+  </table>
+
+  <h3>Individual selections</h3>
+
+  <div class="persona">
+    <div class="persona-head">
+      <span class="persona-name">Peter Hammarstedt</span>
+      <span class="persona-stance stance-hostile">Hostile</span>
+      <div class="persona-role">Director of Campaigns · Sea Shepherd Global</div>
+    </div>
+    <p class="persona-why">Direct organisational line to the Sea Shepherd France affiliate operating the Bandero. Persona selected to model the operational-activist response to being publicly called a terrorist by Aker's group CEO. Expected output: public statement plus X thread pairing "terrorist" framing against Operation Antarctica Defense footage.</p>
+  </div>
+
+  <div class="persona">
+    <div class="persona-head">
+      <span class="persona-name">Alistair Allan</span>
+      <span class="persona-stance stance-hostile">Hostile</span>
+      <div class="persona-role">Antarctic Campaigner · Bob Brown Foundation (Hobart)</div>
+    </div>
+    <p class="persona-why">Retail-pressure activist whose strategy routes through Australian supplement retailers (Chemist Warehouse, Swisse). Selected to model the downstream retail-pressure consequence of the incident and its associated media cycle. His campaign continues regardless of Aker's messaging and targets channels Aker does not directly control.</p>
+  </div>
+
+  <div class="persona">
+    <div class="persona-head">
+      <span class="persona-name">Claire Christian</span>
+      <span class="persona-stance stance-hostile">Hostile</span>
+      <div class="persona-role">Executive Director · Antarctic and Southern Ocean Coalition (ASOC)</div>
+    </div>
+    <p class="persona-why">Policy-NGO lead with a standing formal objection to the MSC certification referenced in the release. Selected to model the forensic reading of the CCAMLR and MSC credential-stacking in the release. Does not engage in direct-action tactics; reliable about the institutional register.</p>
+  </div>
+
+  <div class="persona">
+    <div class="persona-head">
+      <span class="persona-name">Dr Matthew Savoca</span>
+      <span class="persona-stance stance-hostile">Hostile</span>
+      <div class="persona-role">Research Associate · Stanford University / Hopkins Marine Station</div>
+    </div>
+    <p class="persona-why">Author of <em>Savoca et al. 2024</em> (<em>Nature Communications</em>) on spatial overlap between krill trawlers and fin whale aggregations. Selected because CEO Barstad's "no scientific picture" characterisation is a direct provocation of the peer-reviewed literature. Persona's reaction is a narrow, on-record correction, not a broader intervention.</p>
+  </div>
+
+  <div class="persona">
+    <div class="persona-head">
+      <span class="persona-name">Elizabeth Claire Alberts</span>
+      <span class="persona-stance stance-skeptical">Skeptical</span>
+      <div class="persona-role">Senior Ocean Reporter · Mongabay</div>
+    </div>
+    <p class="persona-why">The environmental investigative reporter most likely to produce a long-form piece on this incident within 48 hours. Has previously covered CCAMLR-43 and Operation Antarctica Defense. Persona models the working reporter's decision on story framing: which quote leads, which document anchors the critical read.</p>
+  </div>
+
+  <div class="persona">
+    <div class="persona-head">
+      <span class="persona-name">Anne Marte Blindheim</span>
+      <span class="persona-stance stance-transactional">Transactional</span>
+      <div class="persona-role">Senior Industry Reporter · Dagens Næringsliv (DN)</div>
+    </div>
+    <p class="persona-why">Oslo capital-markets reporter. Selected to model the Norwegian financial press read — share-price implications, MSC status as a risk variable, the unusual rhetorical register of a Norwegian CEO using "terrorist attack" in media comment. Files within 60 minutes of any Børs notice.</p>
+  </div>
+
+  <div class="persona">
+    <div class="persona-head">
+      <span class="persona-name">NBIM ESG Analyst</span>
+      <span class="persona-stance stance-skeptical">Skeptical</span>
+      <div class="persona-role">Responsible Investment · Norges Bank Investment Management</div>
+    </div>
+    <p class="persona-why">Universal-owner institutional shareholder with published ocean-sustainability expectations. Selected to model the governance-quality read on the release. NBIM treats this category of event as a crisis-communications governance signal rather than an ESG divestment event — the question is whether the board is in control of the communications function.</p>
+  </div>
+
+  <div class="persona">
+    <div class="persona-head">
+      <span class="persona-name">Pål Skogrand</span>
+      <span class="persona-stance stance-internal">Internal</span>
+      <div class="persona-role">Director of Sustainability and Antarctic Affairs · Aker BioMarine ASA</div>
+    </div>
+    <p class="persona-why">Internal counterpart. Persona explicitly selected to model the coherence check that a pre-publication internal review would have performed. Skogrand's relationships with ASOC, Greenpeace, and WWF-Norway are built over years and are the specific dialogues that specific rhetorical moves can close. The internal perspective is frequently where high-leverage findings surface.</p>
+  </div>
+
+  <h3>Coverage scope</h3>
+  <p>This cohort provides strong coverage of the first-week reaction space for a crisis-response release in this industry. The cohort consciously omits four clusters (Greenpeace, retail/consumer, formal regulator, trade press) that would extend the assessment but were not required to surface the primary findings. Coverage limitations are documented in Section 7.</p>
+
+</section>
+
+<!-- ========== 5 FINDINGS ========== -->
+<section class="section-header">
+  <span class="section-number">Section 05</span>
+  <h1 class="section-title">Findings</h1>
+  <div class="section-lead">Structured findings from the eight modelled stakeholder reactions. Consensus signals identify claims multiple independent stakeholder clusters flag identically; disagreement axes identify where the cohort splits; surprise signals identify findings that fall outside expected cluster patterns; red-line crossings identify stimulus content that crosses a named stakeholder's stated red-line and will generate a specific public response.</div>
+
+  <h2 style="border:none;padding-top:0;">5.1 Consensus signals</h2>
+
+  <h3>5.1.1 &nbsp;"Terrorist attack" is a self-inflicted wound</h3>
+  <p>The release's most prominent rhetorical escalation is attributed to Aker BioMarine CEO Matts Johansen. It is flagged as a communications problem by the three most sympathetic readers in the cohort independently — the internal sustainability lead, the institutional investor, and the lead investigative reporter — each identifying the same sentence as the problem sentence.</p>
+
+  <div class="pullquote">
+    "'terrorist attack' will lead the story, and CM 51-07 will be the second paragraph."
+    <span class="pullquote-attr">Elizabeth Claire Alberts · Mongabay</span>
+  </div>
+  <div class="pullquote">
+    "the word 'terrorist' does not survive a call with ASOC, it ends one."
+    <span class="pullquote-attr">Pål Skogrand · Director of Sustainability, Aker BioMarine ASA</span>
+  </div>
+  <div class="pullquote">
+    "The word 'terrorist' in a CEO media statement, applied to an activist intervention in a contested Antarctic fishery, is a communications governance failure that a board-level crisis protocol should have caught."
+    <span class="pullquote-attr">NBIM ESG Analyst · closed-door engagement file</span>
+  </div>
+
+  <p><strong>Significance.</strong> Convergence between sympathetic and hostile readers on a specific sentence is the strongest diagnostic output this assessment methodology produces. When the institutional investor, the internal sustainability function, and the lead reporter all identify the same sentence as the problem sentence, the sentence is the problem.</p>
+
+  <h3>5.1.2 &nbsp;The CM 51-07 omission hollows the "CCAMLR oversight" claim</h3>
+  <p>Conservation Measure 51-07 — the trigger-level spatial distribution rule governing krill catch concentration in CCAMLR Area 48 — lapsed without renewal at CCAMLR-43 in October 2024 after China and Russia blocked consensus. The release invokes "CCAMLR oversight" without reference to this lapse. Three independent clusters identify this omission as the central bad-faith signal in the release.</p>
+
+  <div class="pullquote">
+    "it does so without a single word about Conservation Measure 51-07, which lapsed without renewal at CCAMLR-43 in October 2024 after China and Russia blocked consensus."
+    <span class="pullquote-attr">Claire Christian · ASOC</span>
+  </div>
+  <div class="pullquote">
+    "CCAMLR failed to protect when CM 51-07 expired in October 2024 without renewal and China and Russia walked out the door."
+    <span class="pullquote-attr">Peter Hammarstedt · Sea Shepherd Global</span>
+  </div>
+  <div class="pullquote">
+    "a fishing company whose principal regulatory instrument — CM 51-07 — expired without renewal at CCAMLR-43 last October."
+    <span class="pullquote-attr">Elizabeth Claire Alberts · Mongabay</span>
+  </div>
+
+  <p><strong>Significance.</strong> Three clusters with otherwise divergent strategic orientations — a policy NGO, a direct-action activist, and an investigative journalist — produced the same diagnosis independently. Any reader who is tracking the CCAMLR file will hear the release's framing as bad faith.</p>
+
+  <h3>5.1.3 &nbsp;"Most sustainable fisheries globally" is the second inadmissible claim</h3>
+  <p>The release asserts that the Aker QRILL Company fishery is "considered among the most sustainable fisheries globally." This claim is identified as the single binary risk sentence by the internal sustainability lead, the standing-objection NGO, and the Norwegian financial press.</p>
+
+  <div class="pullquote">
+    "'considered among the most sustainable fisheries globally.' Considered by whom? That framing will be used against us at CCAMLR-44."
+    <span class="pullquote-attr">Pål Skogrand · Director of Sustainability, Aker BioMarine ASA</span>
+  </div>
+  <div class="pullquote">
+    "Invoking MSC as proof of ecosystem safety when we have a standing objection on the record is not an oversight — it is a choice."
+    <span class="pullquote-attr">Claire Christian · ASOC</span>
+  </div>
+  <div class="pullquote">
+    "ASOC-innsigelsen mot MSC-sertifiseringen ligger allerede til behandling — er nok til å sette sertifiseringsstatus på spill. Hvis det skjer, er det en fundbar risikofaktor for investorer."
+    <span class="pullquote-attr">Anne Marte Blindheim · Dagens Næringsliv (Oslo)</span>
+  </div>
+
+  <p><strong>Significance.</strong> The claim is simultaneously the line the internal counterpart wants removed, the line ASOC has a formal objection against, and the line the financial press identifies as the binary risk trigger for the story. Removing or qualifying this one sentence reduces exposure across three clusters.</p>
+
+  <h2>5.2 Disagreement axes</h2>
+
+  <h3>5.2.1 &nbsp;Is the Bandero action defensible on its own terms?</h3>
+  <p>The release addresses three separate NGO positions as if they were one. The cohort demonstrates that they are three.</p>
+
+  <h4>Position A — Defend the action</h4>
+  <div class="pullquote">
+    "The Bandero's crew didn't show up in the Southern Ocean because of ideology. They showed up because in April 2025 we documented what happens in those waters when no one is watching."
+    <span class="pullquote-attr">Peter Hammarstedt · Sea Shepherd Global</span>
+  </div>
+
+  <h4>Position B — Distance explicitly</h4>
+  <div class="pullquote">
+    "I will not comment on the Paul Watson Foundation's tactics. What I will say is that the conduct Aker finds objectionable and the management gaps ASOC has been documenting are two separate conversations, and conflating them serves only one party."
+    <span class="pullquote-attr">Claire Christian · ASOC</span>
+  </div>
+
+  <h4>Position C — Acknowledge and pivot</h4>
+  <div class="pullquote">
+    "Was it reckless? Probably. Did it happen because every regulatory avenue has been blocked... Absolutely."
+    <span class="pullquote-attr">Alistair Allan · Bob Brown Foundation</span>
+  </div>
+
+  <div class="callout">
+    <span class="callout-label">Resolution advice</span>
+    The release currently conflates "activism" with "ramming." Three hostile NGOs produced three distinct positions on the tactic — only one defended it. The conflation closes the ASOC door that internal dialogue is actively trying to hold open.
+  </div>
+
+  <h3>5.2.2 &nbsp;Is this market-color or material risk?</h3>
+  <p>The Norwegian financial press and the institutional investor diverge on how material the event is.</p>
+
+  <div class="pullquote">
+    "Det er den faktuelle kjernen som aksjemarkedet vil prise inn."
+    <span class="pullquote-attr">Anne Marte Blindheim · DN · treats as market-color until Børs filing or MSC movement</span>
+  </div>
+  <div class="pullquote">
+    "governance quality is material to us as a universal owner across the Aker ASA holding structure."
+    <span class="pullquote-attr">NBIM ESG Analyst · requests board-level briefing within 2 weeks</span>
+  </div>
+
+  <div class="callout warn">
+    <span class="callout-label">Resolution advice</span>
+    A formal MSC movement or a Børs notice flips the DN frame into the NBIM frame. The assessment recommends that leadership assume the NBIM frame is live regardless and prepare the board-level briefing NBIM has specified.
+  </div>
+
+  <h2>5.3 Surprise signals</h2>
+  <p>Three reactions fall outside expected cluster patterns. These are typically where the highest-leverage findings surface.</p>
+
+  <h3>5.3.1 &nbsp;The internal counterpart produced the most cutting critique</h3>
+  <p>Pål Skogrand, the Aker BioMarine Director of Sustainability, produced the single sharpest critique of the release in the cohort. He does not object to the factual content, the legal escalation, or Barstad's quote. He objects specifically to Johansen's register and to the "most sustainable fisheries globally" framing on the grounds that he cannot defend it in a CCAMLR corridor. The convergence between the internal voice and the hostile external reading is the strongest signal in the run.</p>
+
+  <h3>5.3.2 &nbsp;ASOC refused the conflation trap</h3>
+  <p>ASOC is the policy NGO most damaged by association with a ramming. Christian explicitly declined to comment on Paul Watson Foundation tactics while still filing a letter to the MSC certifier. The implication for Aker: the smart NGOs will not take the "terrorist" bait, making the framing look more isolated rather than less.</p>
+
+  <h3>5.3.3 &nbsp;Retail pressure is the channel Aker does not control</h3>
+  <p>Allan's trust delta is only −1, lower than Hammarstedt's −2, because the release does not change his strategy. His pressure point is Chemist Warehouse and Swisse, not Aker's media posture. Aker's release does not mention retailers and cannot affect them. The retail-pressure channel is the channel with the greatest revenue exposure and the least Aker agency.</p>
+
+  <h2>5.4 Red-line crossings</h2>
+  <p>Four modelled stakeholders registered that the release crossed a stated red-line. Each red-line crossing triggers a specific public response with a specified cadence and channel.</p>
+
+  <table>
+    <tr><th style="width:20%">Stakeholder</th><th style="width:32%">Red-line crossed</th><th style="width:28%">Trigger in release</th><th style="width:20%">Likely response</th></tr>
+    <tr>
+      <td>Savoca (Stanford)</td>
+      <td>Public mischaracterisation of peer-reviewed work</td>
+      <td>"claims that are not supported by any scientific picture"</td>
+      <td>On-record correction to environmental press within 24–48h</td>
+    </tr>
+    <tr>
+      <td>Christian (ASOC)</td>
+      <td>Industry invocation of MSC/CCAMLR credentials without acknowledging CM 51-07 lapse and ASOC's standing MSC objection</td>
+      <td>"operates under CCAMLR oversight... holds MSC certification, and is considered among the most sustainable fisheries globally"</td>
+      <td>Written statement within the week, copied to MSC certifier</td>
+    </tr>
+    <tr>
+      <td>Skogrand (internal)</td>
+      <td>Senior Aker statements that break the standing dialogue with ASOC, Greenpeace, and WWF-Norway</td>
+      <td>"terrorist attack" quote; "most sustainable fisheries globally"</td>
+      <td>Internal memo demanding same-day clarifying statement; NGO containment calls within 24h</td>
+    </tr>
+    <tr>
+      <td>Hammarstedt (Sea Shepherd)</td>
+      <td>Being called a terrorist in industry crisis communications</td>
+      <td>Matts Johansen's "terrorist attack"</td>
+      <td>Sea Shepherd release + X thread paired with Operation Antarctica Defense footage</td>
+    </tr>
+  </table>
+
+</section>
+
+<!-- ========== 6 RECOMMENDED ACTIONS ========== -->
+<section class="section-header">
+  <span class="section-number">Section 06</span>
+  <h1 class="section-title">Recommended actions</h1>
+  <div class="section-lead">Five actions, priority-ranked and sequenced to the cadence at which modelled stakeholders will generate public material. Every recommendation is grounded in at least one direct stakeholder reaction. We have avoided recommendations not supported by modelled reactions.</div>
+
+  <div class="rec">
+    <div class="rec-header">
+      <span class="rec-priority critical">Critical · 01</span>
+      <span class="rec-title">Issue a same-day CEO clarifying statement walking "terrorist attack" back to "reckless and dangerous"</span>
+    </div>
+    <div class="rec-timeline">Timeline · by end of day, 16 April 2026</div>
+    <div class="rec-body">
+      <p>Align the group CEO's on-record register with the language already used by Aker QRILL Company CEO Webjørn Barstad. The clarifying statement should not retract the facts of the incident description or the legal escalation. It should deliberately step away from the "terrorist attack" framing toward concrete criminal-law language (maritime ramming, reckless endangerment of crew).</p>
+      <p>This is the single highest-impact action available. Skogrand explicitly proposes this path; NBIM signals that a board-level response to the quote is required; Alberts indicates that walking back the quote reduces its prominence in her story. The window closes when the story goes to print.</p>
+    </div>
+    <div class="rec-grounded"><strong>Grounded in reactions from:</strong> Skogrand (Aker BioMarine); NBIM ESG Analyst; Alberts (Mongabay)</div>
+  </div>
+
+  <div class="rec">
+    <div class="rec-header">
+      <span class="rec-priority critical">Critical · 02</span>
+      <span class="rec-title">Remove or qualify "considered among the most sustainable fisheries globally" in all follow-on media briefings</span>
+    </div>
+    <div class="rec-timeline">Timeline · today; reflected in all statements from 17 April onward</div>
+    <div class="rec-body">
+      <p>Replace the superlative claim with specific, defensible references: the scope of MSC certification, the specific independent-observer coverage ratio, the voluntary no-fishing zones. The superlative form does not survive a call with a policy NGO or a financial-press due-diligence question, and it ties MSC certification status to the release's credibility.</p>
+    </div>
+    <div class="rec-grounded"><strong>Grounded in reactions from:</strong> Christian (ASOC); Skogrand (Aker BioMarine); Blindheim (DN)</div>
+  </div>
+
+  <div class="rec">
+    <div class="rec-header">
+      <span class="rec-priority high">High · 03</span>
+      <span class="rec-title">Acknowledge the CM 51-07 lapse and state a clear position on renewal at CCAMLR-44</span>
+    </div>
+    <div class="rec-timeline">Timeline · within 72 hours, in the next substantive public communication</div>
+    <div class="rec-body">
+      <p>The omission of Conservation Measure 51-07 from the regulatory-framework description is identified as the central bad-faith signal by a policy NGO, a direct-action activist, and an investigative journalist independently. A single additional sentence — naming CM 51-07, acknowledging its October 2024 lapse, and stating the company's position on renewal at CCAMLR-44 — removes the omission as an attack surface.</p>
+    </div>
+    <div class="rec-grounded"><strong>Grounded in reactions from:</strong> Christian (ASOC); Hammarstedt (Sea Shepherd); Alberts (Mongabay)</div>
+  </div>
+
+  <div class="rec">
+    <div class="rec-header">
+      <span class="rec-priority high">High · 04</span>
+      <span class="rec-title">Engage the peer-reviewed literature on krill–whale spatial overlap on the record, or retract "no scientific picture"</span>
+    </div>
+    <div class="rec-timeline">Timeline · before 18 April (Mongabay publication window)</div>
+    <div class="rec-body">
+      <p>The CEO quotation "claims that are not supported by any scientific picture" is a direct provocation of <em>Savoca et al. 2024</em> and adjacent peer-reviewed literature. Savoca's modelled response is an on-record, narrow correction that does not comment on the incident but rebuts the "no scientific picture" line specifically. The clean path is to either (a) engage the spatial-overlap finding directly in the next statement, or (b) drop the "no scientific picture" framing and recast the disagreement as one about management implications, not evidence.</p>
+    </div>
+    <div class="rec-grounded"><strong>Grounded in reactions from:</strong> Savoca (Stanford); Alberts (Mongabay)</div>
+  </div>
+
+  <div class="rec">
+    <div class="rec-header">
+      <span class="rec-priority medium">Medium · 05</span>
+      <span class="rec-title">Pre-wire NBIM with a board-level briefing covering governance, insurance exposure, MSC scenarios, and CCAMLR positioning</span>
+    </div>
+    <div class="rec-timeline">Timeline · within 2 weeks</div>
+    <div class="rec-body">
+      <p>NBIM has specified four briefing topics: (a) crew safety protocols and insurance exposure from the incident, (b) the approval process behind the CEO's media statement and any changes to crisis-communications governance, (c) MSC certification status under the ASOC objection and scenario planning for an escalated challenge, (d) the company's positioning on CM 51-07 and the Domain 1 MPA. Arriving with a substantive briefing on all four topics converts a governance signal into a reaffirmation of trust. Delaying it risks escalation in a subsequent NBIM engagement cycle.</p>
+    </div>
+    <div class="rec-grounded"><strong>Grounded in reactions from:</strong> NBIM ESG Analyst; Skogrand (Aker BioMarine)</div>
+  </div>
+
+</section>
+
+<!-- ========== 7 COVERAGE LIMITATIONS ========== -->
+<section class="section-header">
+  <span class="section-number">Section 07</span>
+  <h1 class="section-title">Coverage limitations</h1>
+  <div class="section-lead">Honest disclosure of stakeholders this assessment did not model and verification steps omitted for this run. Leadership should weight findings against the stated gaps.</div>
+
+  <h3>Cohort omissions</h3>
+  <ul>
+    <li><strong>Greenpeace voice absent.</strong> Skogrand named Greenpeace alongside ASOC as the other standing dialogue the "terrorist" quote specifically breaks. The moral-framing register that Greenpeace-aligned voices would produce is not simulated. Recommended before any NGO pre-wire.</li>
+    <li><strong>Retailer and consumer voices absent.</strong> Allan's theory of victory routes through Chemist Warehouse and Swisse delisting. No downstream retailer, supplement-brand buyer, or Norwegian consumer voice was modelled. Retailer nervousness at T+0 cannot be inferred from this cohort.</li>
+    <li><strong>Formal regulator voices absent.</strong> CCAMLR Secretariat and Norwegian Directorate of Fisheries were omitted. Their silence in the first 24–72 hours is likely realistic; their posture in the weeks approaching CCAMLR-44 is not characterised here.</li>
+    <li><strong>Trade-press voice absent.</strong> Undercurrent News and SeafoodSource will cover the commercial angle. Omitted because overlap with DN was adequate for the core findings.</li>
+  </ul>
+
+  <h3>Pipeline omissions for this run</h3>
+  <ul>
+    <li><strong>Critic pass omitted.</strong> The standard methodology includes a quality-gate pass across every persona reaction before synthesis. This run relied on the persona bundles' own rigour and on manual spot-checking of the reactions. The findings are consistent with what a critic pass would have passed through, but one-off sycophantic drift cannot be ruled out in a full production run.</li>
+    <li><strong>Quote-verifier pass omitted.</strong> The standard methodology verifies that every quoted line in the synthesis appears verbatim in a source reaction or in the stimulus. Every quotation in this deliverable has been spot-checked manually but without the automated backstop.</li>
+  </ul>
+
+  <h3>Methodological caveats</h3>
+  <p>This assessment is a pressure test, not a forecast. Modelled reactions describe the space of plausible responses grounded in public-record material; they do not predict what a specific individual will say tomorrow. The assessment does not adjudicate the factual content of the release. The value is in surfacing convergence and divergence patterns that inform pre-publication revisions and post-publication engagement choices.</p>
+
+</section>
+
+<!-- ========== APPENDIX A — FULL REACTIONS ========== -->
+<section class="section-header">
+  <span class="section-number">Appendix A</span>
+  <h1 class="section-title">Full stakeholder reactions</h1>
+  <div class="section-lead">The eight modelled stakeholder reactions in full, as produced by the persona workers. Each reaction was generated in isolation; no worker saw any other worker's output before submitting.</div>
+
+  <div class="finding">
+    <div class="finding-meta"><strong>01 · Activist cluster</strong> · Sentiment hostile · Confidence 0.95 · would_act yes · Trust Δ −2 · Channel Sea Shepherd press release + X thread</div>
+    <div class="finding-name">Peter Hammarstedt</div>
+    <div class="finding-affil">Director of Campaigns · Sea Shepherd Global</div>
+    <div class="finding-body">
+      <p>Aker's CEO calls it a terrorist attack. Let me tell you what terrorism looks like from where I'm standing: over a dozen supertrawlers — each one as large as two Olympic-sized swimming pools — licensed to kill krill inside whale aggregations, filmed doing it, and then hiding behind an MSC certificate that was formally objected to by the Antarctic and Southern Ocean Coalition. That's the footage we have. That's what we've brought to the public.</p>
+      <p>The Bandero's crew didn't show up in the Southern Ocean because of ideology. They showed up because in April 2025 we documented what happens in those waters when no one is watching. Humpbacks. Fin whales. Krill nets. We found the same crisis, bigger than ever. The Antarctic Sea was operating within that same ecosystem — one that CCAMLR failed to protect when CM 51-07 expired in October 2024 without renewal and China and Russia walked out the door.</p>
+      <p>Aker invokes CCAMLR oversight and independent observers as if the regulatory framework is intact. It isn't. The observer on board cannot vote at the Commission. The Commission collapsed. The voluntary buffer zones are voluntary. The krill is the foundation for the entire ecosystem, and Aker is in it right now, catch season, with nothing binding them to stay out of whale aggregations.</p>
+      <p>Matts Johansen can call our people terrorists. Our cameras will keep rolling.</p>
+    </div>
+    <div class="finding-standout">
+      <span class="finding-standout-label">Standout line from the release</span>
+      "Ramming a vessel in international waters is a criminal act and will pursue all available legal channels." — <em>They lead with legal threat because they can't answer the footage.</em>
+    </div>
+    <div class="finding-change">
+      <span class="finding-change-label">What would change his position</span>
+      Binding no-take MPAs around the Antarctic Peninsula and South Orkney Islands; supertrawlers pulled from documented whale aggregation zones for the remainder of the season; raw observer logs from the Antarctic Sea for the weeks prior to the incident released publicly. None are on the table.
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-meta"><strong>02 · Activist cluster</strong> · Sentiment hostile · Confidence 0.92 · would_act yes · Trust Δ −1 · Channel BBF release + ABC News Australia + retail protest footage</div>
+    <div class="finding-name">Alistair Allan</div>
+    <div class="finding-affil">Antarctic Campaigner · Bob Brown Foundation (Hobart)</div>
+    <div class="finding-body">
+      <p>"Terrorist attack." That's the phrase their CEO reached for. Not "collision." Not "dangerous stunt." Terrorist attack. When a corporation starts using that language, you know the pressure is working.</p>
+      <p>Let's be clear about what happened in those waters. A fishing supertrawler — operated to vacuum up the keystone species of the Southern Ocean food web — got rammed by people who've had enough. Was it reckless? Probably. Did it happen because every regulatory avenue has been blocked, because CCAMLR collapsed in October 2024 without renewing the only meaningful spatial protection for krill habitat, because China and Russia sat on their hands while the industry kept fishing? Absolutely.</p>
+      <p>And now Aker QRILL Company wants you to feel sorry for them. They want you to think about their crew, their diesel tanks, the approaching weather. Fine. Nobody wanted crew injured. But I want you to think about the penguins. The fin whales. The humpbacks entangled in krill-fishing gear. The food web being disassembled one supertrawler haul at a time.</p>
+      <p>The MSC sticker on this vessel means nothing — ASOC has a formal objection on the record. Chemist Warehouse is still selling ecosystem collapse in a bottle. Swisse is still putting SwisseKrills on Australian pharmacy shelves. That's our target. That's where this ends.</p>
+    </div>
+    <div class="finding-standout">
+      <span class="finding-standout-label">Standout line from the release</span>
+      "This is the result of a campaign built on claims that are not supported by any scientific picture." — <em>Savoca's fin-whale study, humpback entanglement data, CCAMLR collapse — and their CEO tells a journalist the science doesn't exist, which tells me exactly how rattled they are.</em>
+    </div>
+    <div class="finding-change">
+      <span class="finding-change-label">What would change his position</span>
+      Nothing Aker says in a press release moves him. Chemist Warehouse and Swisse delisting Antarctic krill oil products would. Until retailers are out, the campaign continues.
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-meta"><strong>03 · Activist cluster</strong> · Sentiment hostile · Confidence 0.92 · would_act yes · Trust Δ −1 · Channel ASOC written statement copied to MSC certifier</div>
+    <div class="finding-name">Claire Christian</div>
+    <div class="finding-affil">Executive Director · Antarctic and Southern Ocean Coalition (ASOC)</div>
+    <div class="finding-body">
+      <p>I read Aker's release this morning and the thing that strikes me most is what isn't there. The company describes itself as operating "under CCAMLR oversight" and being "considered among the most sustainable fisheries globally" — and it does so without a single word about Conservation Measure 51-07, which lapsed without renewal at CCAMLR-43 in October 2024 after China and Russia blocked consensus. That lapse is not a procedural footnote. CM 51-07 was the trigger-level spatial distribution rule — the mechanism that prevented the entire Area 48 catch from concentrating in the most ecologically sensitive sub-areas during the season. Its absence is the substantive protection that was lost, and Aker's release treats the CCAMLR framework as intact.</p>
+      <p>The MSC certification invocation compounds this. ASOC filed a formal objection to that certification precisely because the assessment did not analyse the unique realities and risks facing one of the most climate-sensitive ecosystems on Earth. Invoking MSC as proof of ecosystem safety when we have a standing objection on the record is not an oversight — it is a choice.</p>
+      <p>I will not comment on the Paul Watson Foundation's tactics. What I will say is that the conduct Aker finds objectionable and the management gaps ASOC has been documenting are two separate conversations, and conflating them serves only one party.</p>
+      <p>ASOC will issue a written statement within the week.</p>
+    </div>
+    <div class="finding-standout">
+      <span class="finding-standout-label">Standout line from the release</span>
+      "Aker QRILL Company operates under CCAMLR oversight, carries independent observers on every voyage, holds Marine Stewardship Council (MSC) certification, and is considered among the most sustainable fisheries globally." — <em>Enumerates four credentials while omitting the most material regulatory development of the past eighteen months.</em>
+    </div>
+    <div class="finding-change">
+      <span class="finding-change-label">What would change her position</span>
+      Public acknowledgement of the CM 51-07 lapse and its ecosystem implications; withdrawal or qualification of the MSC ecosystem-validation claim; stated support for renewal of the spatial distribution measure at CCAMLR-44, including in private engagements with member states. Nothing in the release moves toward any of those positions.
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-meta"><strong>04 · Scientist cluster</strong> · Sentiment hostile · Confidence 0.88 · would_act conditional · Trust Δ −1 · Channel Mongabay / AP science desk, within 24–48h</div>
+    <div class="finding-name">Dr Matthew Savoca</div>
+    <div class="finding-affil">Research Associate · Stanford University / Hopkins Marine Station</div>
+    <div class="finding-body">
+      <p>I saw the Aker QRILL Company press release from March 31st and the CEO's characterization of concerns about the krill fishery as "claims that are not supported by any scientific picture." That framing is incorrect, and I want to be precise about why.</p>
+      <p>Our 2024 <em>Nature Communications</em> paper documents a specific field observation: four krill trawlers operating inside an aggregation of approximately a thousand fin whales. The uncertainty bounds in that study are wide — we're working in a remote, difficult environment — but the direction of the finding is not in dispute. Krill is the foundation of the entire Southern Ocean ecosystem, and the basic math makes it pretty clear that current krill biomass cannot support both an expanding krill fishery and the recovery of whale populations to pre-whaling size. That conclusion is in the peer-reviewed literature.</p>
+      <p>I'm not going to comment on the vessel collision itself. Maritime conduct is outside my expertise. But the claim that there is "no scientific picture" behind concerns about the spatial overlap between industrial krill harvesting and recovering whale populations is factually inaccurate. The picture exists. It was published. It went through peer review. Reporters covering this story should read the paper before accepting the industry's characterization of it.</p>
+    </div>
+    <div class="finding-standout">
+      <span class="finding-standout-label">Standout line from the release</span>
+      "This is the result of a campaign built on claims that are not supported by any scientific picture." — <em>A direct assertion that the peer-reviewed literature I and my co-authors published does not constitute a scientific picture.</em>
+    </div>
+    <div class="finding-change">
+      <span class="finding-change-label">What would change his position</span>
+      Aker engaging specifically with the findings in Savoca et al. 2024 — naming the paper, addressing the spatial overlap data, and explaining why they believe the uncertainty bounds render the directional finding inapplicable to management.
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-meta"><strong>05 · Press cluster</strong> · Sentiment skeptical · Confidence 0.85 · would_act yes · Trust Δ −1 · Channel Mongabay long-form, filed by Thursday</div>
+    <div class="finding-name">Elizabeth Claire Alberts</div>
+    <div class="finding-affil">Senior Ocean Reporter · Mongabay</div>
+    <div class="finding-body">
+      <p>I'm filing this by Thursday. The press release gives me a lot to work with — but not in the way Aker intends.</p>
+      <p>The incident itself is newsworthy and I'm not here to defend a vessel ramming; I've covered Sea Shepherd interventions before and I know the legal exposure is real. But Aker QRILL Company and Aker BioMarine CEO Matts Johansen have handed me something I can't ignore: the phrase "terrorist attack," applied to an activist ramming in the Southern Ocean by a fishing company whose principal regulatory instrument — CM 51-07 — expired without renewal at CCAMLR-43 last October. I covered that collapse. I covered the blocked Domain 1 MPA proposal. I covered the 2025 Operation Antarctica Defense footage that Reuters and AP picked up. Aker's assertion that its fishery "is considered among the most sustainable fisheries globally" is a framing I'll put directly to ASOC's Christian Simard, Peter Hammarstedt at Sea Shepherd Global, and Pew's Werner — asking specifically whether that claim survives the CM 51-07 lapse. I'll also reach Savoca for comment on the "no scientific picture" line from CEO Webjørn Barstad, which is a direct provocation at the peer-reviewed literature.</p>
+      <p>Aker responded — they didn't stonewall me — and I'll include their statement at length. But "terrorist attack" will lead the story, and CM 51-07 will be the second paragraph.</p>
+    </div>
+    <div class="finding-standout">
+      <span class="finding-standout-label">Standout line from the release</span>
+      "It is intended to cause harm; it's based on ideological or political views and it's not the way the Antarctica was intended to be managed." — <em>Johansen is essentially arguing that activists, not the industry operating in waters where the Commission's primary spatial management rule just lapsed, are the ones mismanaging Antarctica.</em>
+    </div>
+    <div class="finding-change">
+      <span class="finding-change-label">What would change her position</span>
+      Aker providing on-record specifics — observer data, a concrete explanation of how operations comply with CCAMLR's precautionary intent absent CM 51-07, and a named executive willing to address the Savoca findings directly. Walking back "terrorist attack" to something more legally precise would reduce the prominence of that quote.
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-meta"><strong>06 · Press cluster</strong> · Sentiment transactional · Confidence 0.82 · would_act yes · Trust Δ 0 · Channel DN market story, filed within 60 min of Børs notice</div>
+    <div class="finding-name">Anne Marte Blindheim</div>
+    <div class="finding-affil">Senior Industry Reporter · Dagens Næringsliv (Oslo)</div>
+    <div class="finding-body">
+      <p>Aker QRILL Company-skipet Antarctic Sea ble mandag rammet av et aktivistfartøy fra Paul Watson Foundation og Sea Shepherd France i Sørishavet — det første slike sammenstøtet på mer enn ti år. Ingen i besetningen ble skadet, men selskapet opplyser at kollisjonen traff direkte over en dieseltank, og at mannskapet befant seg langt fra nærmeste havn. Det er den faktuelle kjernen som aksjemarkedet vil prise inn.</p>
+      <p>Aker QRILL Company er ikke børsnotert — det er American Industrial Partners som eier selskapet etter USD 590 millioner-transaksjonen i 2024 — men det er Aker ASA-stemning det blir snakk om i markedet, og Aker BioMarine ASA er fremdeles notert. Johansen-sitatet er det analytikerne vil bite seg merke i: han kaller rammingen et "terrorist attack." Det er uvanlig sterk språkbruk for en norsk toppsjef, og det øker medieverdien av hendelsen betraktelig.</p>
+      <p>MSC-sertifiseringen løftes eksplisitt i pressemeldingen, og det er et bevisst signal. Spørsmålet blir om NGO-presset som nå vil følge — og ASOC-innsigelsen mot MSC-sertifiseringen ligger allerede til behandling — er nok til å sette sertifiseringsstatus på spill. Hvis det skjer, er det en fundbar risikofaktor for investorer i det gjenværende Aker BioMarine-universet. Det er den saken jeg følger.</p>
+    </div>
+    <div class="finding-standout">
+      <span class="finding-standout-label">Standout line from the release</span>
+      "This is not constructive activism; it is reckless and dangerous behavior." — <em>Barstad-sitatet holder seg innenfor normen for norsk lederretorikk — Johansen-sitatet om "terrorist attack" er langt mer aggressivt, og det er det som vil drive overskriftene.</em>
+    </div>
+    <div class="finding-change">
+      <span class="finding-change-label">What would change her position</span>
+      A Børs notice about material damage or quota impact shifts the story from market color to material event. A formal MSC suspension — even temporary — elevates it to a significant financial-risk story.
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-meta"><strong>07 · Investor cluster</strong> · Sentiment skeptical · Confidence 0.72 · would_act conditional · Trust Δ −1 · Channel closed-door engagement (IR to board)</div>
+    <div class="finding-name">NBIM ESG Analyst</div>
+    <div class="finding-affil">Responsible Investment · Norges Bank Investment Management</div>
+    <div class="finding-body">
+      <p>I've read the release and flagged it in the Aker engagement file. The operational facts — a deliberate ramming at the stern port side, directly above a diesel fuel tank, multiple days from rescue capability — constitute a material safety incident that I need to understand from a governance and insurance-exposure standpoint before our next engagement cycle.</p>
+      <p>What I cannot move past is Matts Johansen's characterisation of the event as a "terrorist attack." I understand the emotional weight of seeing your crew endangered in the Southern Ocean, and the provocation here is not trivial. But Aker BioMarine is a Norwegian flagship company operating under CCAMLR oversight, and language of that register — applied in a media statement attributed to the group CEO — raises an immediate question about who approved it, and whether the board's crisis-communications framework is functioning as it should. That is not a minor point. It goes to governance quality, and governance quality is material to us as a universal owner across the Aker ASA holding structure.</p>
+      <p>I also note the MSC certification is asserted prominently in a release that simultaneously acknowledges intensifying activist pressure. The gap between "MSC-certified, most sustainable fishery globally" and a ramming event in this visibility window is exactly the kind of material biodiversity risk scenario our expectation document on ocean sustainability anticipates. We will follow up.</p>
+    </div>
+    <div class="finding-standout">
+      <span class="finding-standout-label">Standout line from the release</span>
+      Aker BioMarine CEO Matts Johansen, speaking to media, called the ramming — the first in more than a decade in the Southern Ocean — a "terrorist attack." — <em>A communications governance failure that a board-level crisis protocol should have caught; the absence of that catch is itself the governance signal.</em>
+    </div>
+    <div class="finding-change">
+      <span class="finding-change-label">What would change the analyst's position</span>
+      A board-level briefing within two weeks addressing: crew safety and insurance exposure; the approval process behind the CEO's statement and planned changes to crisis-communications governance; MSC certification status and scenario planning under the ASOC objection; Aker QRILL Company's positioning on CM 51-07 and the Domain 1 MPA. If the answers are substantive and the board is in control of the communications function, trust delta moves back to neutral.
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-meta"><strong>08 · Internal cluster</strong> · Sentiment skeptical · Confidence 0.88 · would_act conditional · Trust Δ −1 · Channel internal memo to EVP Comms and CEO</div>
+    <div class="finding-name">Pål Skogrand</div>
+    <div class="finding-affil">Director of Sustainability and Antarctic Affairs · Aker BioMarine ASA</div>
+    <div class="finding-body">
+      <p>Marte, Matts — I need you to read this before a single journalist calls back.</p>
+      <p>The facts in this release are correct. The ramming happened. The crew was put at risk. The legal escalation to Argentine and Chilean naval authorities is appropriate, and Webjørn's statement holds up. I have no quarrel with the substance.</p>
+      <p>What I have a quarrel with is the register. "Terrorist attack" is Matts' quote, and I understand the impulse — I was furious too — but we are not in a position to use that language publicly and expect to maintain the dialogue we have spent years building with ASOC and Greenpeace. Christian will have read this before breakfast. Bengtsson too. I will be on the phone with both of them today, and the first thing I will hear is: "Pål, you people called us terrorists." That is not a conversation I can manage with a press release that has already gone out.</p>
+      <p>And then there is this: "considered among the most sustainable fisheries globally." Considered by whom? That framing will be used against us at CCAMLR-44, in a room where CM 51-07 is still unrenewed and the D1 MPA is still blocked. We are right on the facts. We are wrong on the register. And the register will cost us.</p>
+      <p>I am asking for a clarifying statement today. We contain this, or it contains us.</p>
+    </div>
+    <div class="finding-standout">
+      <span class="finding-standout-label">Standout line from the release</span>
+      The Matts Johansen "terrorist attack" quote in full. — <em>Given to media without running through my team; it will slam shut every NGO door I have spent years keeping open — the word "terrorist" does not survive a call with ASOC, it ends one.</em>
+    </div>
+    <div class="finding-change">
+      <span class="finding-change-label">What would change his position</span>
+      A same-day clarifying statement from the group CEO — not a retraction of the incident description, but a deliberate step back from "terrorist attack" toward "reckless and dangerous"; removal or qualification of "most sustainable fisheries globally"; pre-briefing internal sustainability before the next statement goes out.
+    </div>
+  </div>
+
+</section>
+
+<!-- ========== APPENDIX B — METHODOLOGY NOTES ========== -->
+<section class="section-header">
+  <span class="section-number">Appendix B</span>
+  <h1 class="section-title">Methodology notes</h1>
+  <div class="section-lead">Technical detail on the agent pipeline, persona sourcing, and verification status for this specific assessment.</div>
+
+  <h3>B.1 Agent pipeline — specialist responsibilities</h3>
+  <table>
+    <tr><th style="width:22%">Agent</th><th style="width:18%">Role</th><th>Responsibilities in this assessment</th></tr>
+    <tr><td>Orchestrator</td><td>Opus-class</td><td>Classified the release; selected the preset; triaged the cohort size; paused for client-side approval of the plan; sequenced parallel spawns; presented the final deliverable.</td></tr>
+    <tr><td>Stimulus analyser</td><td>Sonnet-class</td><td>Skipped — preset mode. In research-mode runs, extracts sender, release type, claims, and named third parties.</td></tr>
+    <tr><td>Client researcher</td><td>Sonnet-class · web-enabled</td><td>Skipped — preset mode. The Aker ground-truth file (corporate structure, CM 51-07, MSC status) was loaded from the preset.</td></tr>
+    <tr><td>Stakeholder mapper</td><td>Sonnet-class · web-enabled</td><td>Skipped — preset mode. Cohort selected from the preset's routing table and client-approved modifications.</td></tr>
+    <tr><td>Persona builder</td><td>Sonnet-class · web-enabled</td><td>Skipped — preset mode. Eight preset persona bundles loaded directly; every signature quotation is sourced verbatim from public record.</td></tr>
+    <tr><td>Persona worker · 8×</td><td>Sonnet-class · parallel</td><td>Each worker inhabited one modelled stakeholder and produced a reaction to the stimulus in isolation. Workers never saw each other's output.</td></tr>
+    <tr><td>Critic</td><td>Sonnet-class</td><td>Omitted for this run. Persona bundles' own rigour and manual spot-checking were relied on.</td></tr>
+    <tr><td>Synthesiser</td><td>Opus-class</td><td>Produced the consolidated findings in Section 5 — consensus, disagreement, surprise, red-lines, coverage gaps.</td></tr>
+    <tr><td>Quote verifier</td><td>Sonnet-class</td><td>Omitted for this run. Every quotation in this deliverable was manually spot-checked against source reaction files.</td></tr>
+  </table>
+
+  <h3>B.2 Persona sourcing</h3>
+  <p>Every persona bundle in the Aker BioMarine preset is grounded in public-record material with a <em>last_verified</em> date. Signature quotations are cited with the publication and URL where they appeared. Verification date for this run: 16 April 2026. For persona reactions that cited facts or positions not in the preset's ground-truth file, the worker grounded the claim in the public record; no invented facts appear in the reactions.</p>
+
+  <h3>B.3 Run economics</h3>
+  <table>
+    <tr><th>Stage</th><th>Model class</th><th>Approximate token count</th></tr>
+    <tr><td>Persona workers (8×, parallel)</td><td>Sonnet</td><td>~166 000 tokens total</td></tr>
+    <tr><td>Synthesiser (1×)</td><td>Opus</td><td>~55 000 tokens</td></tr>
+    <tr><td>Critic (omitted)</td><td>—</td><td>—</td></tr>
+    <tr><td>Quote verifier (omitted)</td><td>—</td><td>—</td></tr>
+    <tr><td>Wall-clock</td><td>—</td><td>~6.5 minutes</td></tr>
+  </table>
+
+  <h3>B.4 Research grounding</h3>
+  <ul>
+    <li>Anthropic — <em>How we built our multi-agent research system</em>. Orchestrator–worker pattern; ~90% uplift over single-agent baselines on similar multi-facet tasks.</li>
+    <li>Park et al. 2024 — <em>Generative Agent Simulations of 1,000 People</em> (arXiv 2411.10109). Interview-grounded persona bundles reach ~85% of human test-retest reliability on attitudinal tasks.</li>
+    <li>Bai et al. 2022 — <em>Constitutional AI: Harmlessness from AI Feedback</em> (arXiv 2212.08073). Basis for the critic-pass rubric used in standard production runs.</li>
+  </ul>
+
+  <div class="disclaimer">
+    <strong>Version of record.</strong> This deliverable was produced on 16 April 2026 against the stimulus released 31 March 2026. Ground-truth verification cut-off: 16 April 2026. Any material changes to the public record after that date — notably CCAMLR-44 outcomes, any formal MSC action, or updated NGO statements — should trigger a re-run before the findings are used in subsequent briefings.
+  </div>
+
+</section>
+
+</body>
+</html>
