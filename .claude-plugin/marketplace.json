@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "vibelabs-plugins",
-  "description": "Vibe Labs Claude Code plugins — AI assistant spawner, Instagram analysis, and more",
+  "description": "Vibe Labs Claude Code plugins — AI assistant spawner, Instagram analysis, stakeholder simulation, and more",
   "owner": {
     "name": "Simon Strumse"
   },
@@ -36,6 +36,17 @@
         "name": "Simon Strumse"
       },
       "source": "./plugins/github-multi-account",
+      "category": "productivity",
+      "homepage": "https://github.com/simonstrumse/vibelabs-plugins"
+    },
+    {
+      "name": "mirofish",
+      "description": "Stakeholder simulation for PR and marketing. Spawns a cast of persona subagents (press, activists, scientists, regulators, customers, investors) in parallel to react to a press release, then synthesizes consensus, disagreement, surprise signals, and coverage gaps. Ships with a 20-persona Aker BioMarine library that can be swapped for any industry.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Vibe Labs"
+      },
+      "source": "./plugins/mirofish",
       "category": "productivity",
       "homepage": "https://github.com/simonstrumse/vibelabs-plugins"
     }
