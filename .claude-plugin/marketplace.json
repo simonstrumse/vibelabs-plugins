@@ -40,13 +40,13 @@
       "homepage": "https://github.com/simonstrumse/vibelabs-plugins"
     },
     {
-      "name": "mirofish",
-      "description": "Stakeholder simulation for PR and marketing. Spawns a cast of persona subagents (press, activists, scientists, regulators, customers, investors) in parallel to react to a press release, then synthesizes consensus, disagreement, surprise signals, and coverage gaps. Ships with a 20-persona Aker BioMarine library that can be swapped for any industry.",
-      "version": "0.1.0",
+      "name": "stakeholder-sim",
+      "description": "Stakeholder reaction simulation for PR and marketing. Industry-agnostic — researches the sender, maps stakeholders, and builds a persona cast per run (or loads a preset library). Spawns persona subagents in parallel, critic-passes each reaction, synthesizes consensus/disagreement/surprise signals, and verifies every quote. Fully agentic pipeline — every extraction, classification, and verification step runs on Claude subagents with native tools. Ships with an Aker BioMarine sample preset.",
+      "version": "0.2.0",
       "author": {
         "name": "Vibe Labs"
       },
-      "source": "./plugins/mirofish",
+      "source": "./plugins/stakeholder-sim",
       "category": "productivity",
       "homepage": "https://github.com/simonstrumse/vibelabs-plugins"
     }

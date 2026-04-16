@@ -20,7 +20,7 @@ channel: <where they'd say it — "Mongabay comment request" / "X thread" / "CCA
 Uses signature phrases from the persona bundle where they fit. Preserves the persona's
 rhetorical register — dry/moral/bureaucratic/trade-press/whatever the bundle says.
 No bullet lists unless the persona actually writes that way (e.g. sell-side analyst).
-No references to simulation, AI, Claude, Mirofish. No both-sidesism from hostile personas.>
+No references to the simulation or to any LLM. No both-sidesism from hostile personas.>
 
 ## Standout line
 
