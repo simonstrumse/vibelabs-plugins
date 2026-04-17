@@ -2,8 +2,8 @@
 name: persona-worker
 description: Roleplay a single named stakeholder reacting to a stimulus. Invoked by the stakeholder-sim orchestrator. Not intended for direct user invocation.
 tools: Read, Write
-model: claude-sonnet-4-6
-effort: medium
+model: claude-opus-4-6
+effort: high
 maxTurns: 6
 color: purple
 ---

@@ -2,8 +2,8 @@
 name: quote-verifier
 description: Verify that every quoted line in a synthesized report appears verbatim in a findings file or the stimulus. Returns a pass/fail verdict with specific unverified quotes and suggested corrections. Invoked as the final verification pass by the stakeholder-sim orchestrator. Not intended for direct user invocation.
 tools: Read, Glob, Grep, Write
-model: claude-sonnet-4-6
-effort: medium
+model: claude-opus-4-6
+effort: high
 maxTurns: 6
 color: red
 ---

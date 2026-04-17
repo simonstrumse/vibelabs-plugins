@@ -285,12 +285,10 @@ Output: `verification.md`.
 
 ## Model and tool guidance
 
-- **Orchestrator (you):** Opus 4.6 with high effort. You are doing coordination, not content.
-- **Research agents** (stimulus-analyzer, client-researcher, stakeholder-mapper, persona-builder): Sonnet 4.6. Extraction and classification are a Sonnet-level task.
-- **Deliverable agents** (general-purpose, invoking `/pdf` and `/pptx` native skills): inherit session model. Production of the PDF and PPTX deliverables via native skills — not custom scripts.
-- **Persona workers, critic:** Sonnet 4.6. Many in parallel.
-- **Synthesizer:** Opus 4.6 with high effort. The synthesis is the hard-reasoning step.
-- **Quote verifier:** Sonnet 4.6. Judgment-based comparison.
+- **Orchestrator (you):** Opus with high effort. Coordination and judgment calls.
+- **Research agents** (stimulus-analyzer, client-researcher, stakeholder-mapper, persona-builder): Sonnet. Extraction, web research, and classification — high-volume, parallelised, cost-efficient.
+- **Execution agents** (persona-worker, critic, synthesizer, quote-verifier): Opus with high effort. These produce the core output — persona voice fidelity, quality judgment, synthesis reasoning, and quote verification all benefit from Opus-level reasoning. Persona workers run in parallel on Opus.
+- **Deliverable agents** (general-purpose, invoking `/pdf` and `/pptx` native skills): spawn with `model: opus` — the final deliverables are the product the client sees.
 
 All subagent frontmatter is set at the agent level — you don't need to specify models at spawn time.
 
