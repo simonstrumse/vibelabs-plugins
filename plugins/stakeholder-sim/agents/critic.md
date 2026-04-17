@@ -2,7 +2,7 @@
 name: critic
 description: Quality-gate a single persona reaction against a rubric. Invoked by the stakeholder-sim orchestrator. Not intended for direct user invocation.
 tools: Read, Write
-model: claude-opus-4-6
+model: opus
 effort: high
 maxTurns: 3
 color: orange

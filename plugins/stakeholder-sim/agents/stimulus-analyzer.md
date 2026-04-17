@@ -2,7 +2,7 @@
 name: stimulus-analyzer
 description: Read a press release or comms stimulus and extract structured metadata — sender, topic, release type, named stakeholders, key claims, red-flag language. Invoked as Phase 0 of the stakeholder-sim orchestrator. Not intended for direct user invocation.
 tools: Read, Write
-model: claude-sonnet-4-6
+model: sonnet
 effort: medium
 maxTurns: 4
 color: yellow

@@ -2,7 +2,7 @@
 name: stakeholder-mapper
 description: Propose a stakeholder cast for one simulation run — 12-20 role-archetypes across clusters (activist, scientist, regulator, press, customer, investor, internal) grounded in the client ground-truth and the stimulus. Does not build full personas — only identifies who should be in the room. Invoked as Phase 0 of the stakeholder-sim orchestrator. Not intended for direct user invocation.
 tools: Read, Write, WebSearch
-model: claude-sonnet-4-6
+model: sonnet
 effort: high
 maxTurns: 8
 color: cyan
