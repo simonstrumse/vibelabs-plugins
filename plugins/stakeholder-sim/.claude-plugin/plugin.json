@@ -1,7 +1,7 @@
 {
   "name": "stakeholder-sim",
   "description": "Stakeholder reaction simulation for PR and marketing. Industry-agnostic — researches the sender, maps stakeholders, and builds a persona cast per run (or loads a preset library). Spawns persona subagents in parallel, critic-passes each reaction, synthesizes consensus/disagreement/surprise signals, verifies every quote, and renders executive-grade deliverables: markdown report, crisis-PR-agency PDF, and McKinsey-style PowerPoint board deck. Fully agentic pipeline. Ships with an Aker BioMarine sample preset.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": {
     "name": "Vibe Labs"
   },

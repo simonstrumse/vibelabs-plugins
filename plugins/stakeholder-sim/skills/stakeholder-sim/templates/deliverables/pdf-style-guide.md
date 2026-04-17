@@ -8,8 +8,10 @@ This is an **executive-grade advisory deliverable**. The reader is a CEO, Chair,
 
 Reference points (recognisable visual languages):
 
-- **McKinsey / BCG report:** restrained palette, serif body, action titles, pyramid-principle exec summary, lots of whitespace, minimal chrome.
+- **McKinsey / BCG report:** restrained palette, serif body, action titles, pyramid-principle exec summary, lots of whitespace, minimal chrome. McKinsey uses custom Bower serif + deep blue `#0D2545`. BCG uses forest green `#00783E`. Both structure findings top-down (conclusion first, support second).
+- **Edelman Trust Barometer:** the single best reference for how large-scale stakeholder research is visualised. Defining move: **hero numbers at 72-96pt** — the statistic IS the page, not a supporting element. Deep navy `#002855` + warm orange `#E05A00` accent.
 - **Brunswick / Teneo / Edelman memo:** classified footer, "Prepared for [executive names]" on cover, pull-quote-driven, grounded in named stakeholder voices.
+- **Bain brief:** verb-led recommendation titles ("Contain X", "Restructure Y"). Every recommendation starts with an imperative verb.
 - **Deloitte / Oliver Wyman findings pack:** priority-ranked recommendations with timeline, explicit limitations section, appendix with raw material.
 
 ## Document structure (non-negotiable)
@@ -49,6 +51,32 @@ Every generated PDF must include, in this order:
 | grey-5 | `#2b2b2b` | Body text |
 
 No other colors. No gradients. No drop shadows.
+
+## Hero numbers (Edelman convention)
+
+The executive summary must include a **metrics bar** with 2-4 large numbers displayed at 28-36pt (constrained for PDF; 72-96pt in slides). These hero numbers are the above-the-fold executive hook — the reader processes them before reading any prose.
+
+Pattern:
+
+```html
+<div class="metrics">
+  <div class="metric">
+    <div class="metric-label">PERSONAS HOSTILE</div>
+    <div class="metric-value">6 of 8</div>
+    <div class="metric-note">across all clusters</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">RED-LINE CROSSINGS</div>
+    <div class="metric-value">4</div>
+    <div class="metric-note">will generate specific public action</div>
+  </div>
+  ...
+</div>
+```
+
+The `.metric-value` uses Helvetica Neue at 14pt in the current CSS. For stronger visual impact, increase to 20-24pt — large enough to function as the hero element, small enough to stay inside A4 margins at three-across layout.
+
+Every hero number must be factually grounded in the run data. Do not round up or dramatise. If 5 of 8 personas are hostile, say 5, not "most."
 
 ## Page layout
 
@@ -92,8 +120,8 @@ Each callout has a small uppercase label in the border color.
 Each recommendation in Section 6 is a bordered card with:
 
 1. **Priority badge** — colored pill (red = Critical, gold = High, grey = Medium), uppercase small text
-2. **Title** — full-sentence action title in navy
-3. **Timeline** — one line below title
+2. **Title** — **verb-first imperative** action title in navy (Bain convention: "Contain X", "Walk back Y", "Pre-wire Z"). Never a noun phrase or passive construction. The verb is the decision prompt.
+3. **Timeline** — one line below title (T+0, within 72h, within 2 weeks)
 4. **Body** — 2-3 paragraphs explaining the recommendation
 5. **Grounded in** — footer row listing the personas whose reactions motivate this rec
 
@@ -124,6 +152,27 @@ weasyprint <input.html> <output.pdf>
 ```
 
 WeasyPrint supports `@page` rules, page counters, page-break directives, and modern CSS — everything the reference template needs. Chrome headless also works as a fallback.
+
+## PDF vs PowerPoint: the role split
+
+When both deliverables are produced for the same run, they are **complementary, not duplicative**. The executive summary and recommendations appear in both, but the depth and function differ:
+
+**The PDF contains (that the PPT does not):**
+- Full prose narrative for each finding section
+- Complete methodology write-up
+- Full individual persona reactions (Appendix A)
+- Legal/privilege language if applicable
+- Source documentation and URLs
+- Detailed coverage-limitations section
+
+**The PPT contains (that the PDF does not):**
+- Action titles on every slide (the "ghost deck" — reading titles alone tells the argument)
+- Visual exhibits: reaction distribution tables, red-line table, recommendation table with RAG indicators
+- "So what" slide with 3 numbered decision prompts
+- Speaker notes for the live briefing
+- Designed for a 30-45 minute board slot — every slide gets 2-3 minutes of airtime
+
+**The governing principle:** The PPT is for the 45-minute board presentation. The PDF is for the person who has to implement the recommendations and needs the full evidence chain.
 
 ## The content is the agent's job, the design is this guide's job
 

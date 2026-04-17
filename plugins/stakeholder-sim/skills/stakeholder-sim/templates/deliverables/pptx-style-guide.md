@@ -67,10 +67,12 @@ Every slide's title must be a **complete sentence stating the conclusion**, acti
 **Weak → strong:**
 
 - "Media coverage" → "Mongabay will lead with the 'terrorist attack' quote and CM 51-07 as the second paragraph"
-- "Recommendations" → "A same-day CEO walk-back is the single highest-impact action available at T+0"
-- "Methodology" → "Eight modelled stakeholders, independent reactions, critic-verified against a rubric"
+- "Recommendations" → "Walk back 'terrorist attack' today — the single highest-impact action available at T+0"
+- "Methodology" → "Eight modelled stakeholders reacted independently; three consensus signals emerge from cross-cluster convergences"
 
 If a proposed title is not a complete sentence, rewrite it.
+
+**For recommendation slides specifically:** use **verb-first imperatives** in the Bain convention. Every recommendation starts with an action verb: "Contain", "Walk back", "Acknowledge", "Engage", "Pre-wire". The verb IS the decision prompt. A noun phrase like "Same-day clarifying statement" is weaker than "Issue a same-day clarifying statement walking 'terrorist attack' back to 'reckless and dangerous'."
 
 ## Standard slide frame (every content slide)
 
