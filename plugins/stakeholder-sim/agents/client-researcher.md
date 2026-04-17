@@ -2,7 +2,7 @@
 name: client-researcher
 description: Build a client ground-truth file for one simulation run. Accepts either user-provided factual info OR researches from public sources via WebFetch/WebSearch. Output is the same ground-truth format other agents read. Invoked as Phase 0 of the stakeholder-sim orchestrator. Not intended for direct user invocation.
 tools: Read, Write, WebFetch, WebSearch
-model: claude-sonnet-4-6
+model: sonnet
 effort: high
 maxTurns: 20
 color: green

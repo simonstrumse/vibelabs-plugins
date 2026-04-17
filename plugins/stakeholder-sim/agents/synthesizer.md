@@ -2,7 +2,7 @@
 name: synthesizer
 description: Synthesize N persona reactions into a structured report for a PR team. Invoked by the stakeholder-sim orchestrator. Not intended for direct user invocation.
 tools: Read, Glob, Write
-model: claude-opus-4-6
+model: opus
 effort: high
 maxTurns: 6
 color: blue

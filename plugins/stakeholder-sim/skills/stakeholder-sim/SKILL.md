@@ -10,7 +10,7 @@ description: >
   "how would X react", "stakeholder simulation", "press release test",
   "pre-flight", "red team this release", "synthetic focus group for comms".
 allowed-tools: Read, Glob, Grep, Bash, Write, Task
-model: claude-opus-4-6
+model: opus
 effort: high
 ---
 
@@ -202,7 +202,7 @@ Output: `verification.md`.
 
    **For PDF:**
    ```
-   Agent(general-purpose):
+   Agent(general-purpose, model: opus, effort: high):
      "You are producing a crisis-PR-agency-grade PDF deliverable for a stakeholder
       simulation run. Use the /pdf skill to create the document.
 
@@ -230,7 +230,7 @@ Output: `verification.md`.
 
    **For PPTX:**
    ```
-   Agent(general-purpose):
+   Agent(general-purpose, model: opus, effort: high):
      "You are producing an executive board deck for a stakeholder simulation
       run. Use the /pptx skill to create the PowerPoint.
 
@@ -288,7 +288,7 @@ Output: `verification.md`.
 - **Orchestrator (you):** Opus with high effort. Coordination and judgment calls.
 - **Research agents** (stimulus-analyzer, client-researcher, stakeholder-mapper, persona-builder): Sonnet. Extraction, web research, and classification — high-volume, parallelised, cost-efficient.
 - **Execution agents** (persona-worker, critic, synthesizer, quote-verifier): Opus with high effort. These produce the core output — persona voice fidelity, quality judgment, synthesis reasoning, and quote verification all benefit from Opus-level reasoning. Persona workers run in parallel on Opus.
-- **Deliverable agents** (general-purpose, invoking `/pdf` and `/pptx` native skills): spawn with `model: opus` — the final deliverables are the product the client sees.
+- **Deliverable agents** (general-purpose, invoking `/pdf` and `/pptx` native skills): spawn with `model: opus, effort: high` — the final deliverables are the product the client sees, and every Opus subagent in this pipeline uses high effort.
 
 All subagent frontmatter is set at the agent level — you don't need to specify models at spawn time.
 

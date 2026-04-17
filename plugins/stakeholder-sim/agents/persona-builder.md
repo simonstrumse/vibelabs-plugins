@@ -2,7 +2,7 @@
 name: persona-builder
 description: Build a single persona bundle from a cast-roster entry. Researches the specific individual or archetype via WebFetch/WebSearch to find signature quotes, red lines, and reaction patterns grounded in public record. Output matches the persona schema the persona-worker reads. Invoked as Phase 0 of the stakeholder-sim orchestrator, in parallel for the whole cast. Not intended for direct user invocation.
 tools: Read, Write, WebFetch, WebSearch
-model: claude-sonnet-4-6
+model: sonnet
 effort: high
 maxTurns: 15
 color: magenta
