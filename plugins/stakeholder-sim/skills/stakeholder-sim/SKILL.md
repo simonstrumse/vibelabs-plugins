@@ -188,22 +188,77 @@ Output: `verification.md`.
 2. Report the verification summary ("All N quotes verified" or "N quotes corrected").
 3. **Offer output formats.** The markdown report is already written. Ask the user which additional deliverables to produce:
    - **Markdown** (`report.md`) — already produced; always available
-   - **PDF** — crisis-PR-agency-grade board report, rendered via `Agent(pdf-renderer)`. Use when leadership will read the full assessment (CEO / Chair / Board).
-   - **PowerPoint** — executive board deck (12-16 slides, McKinsey-style), rendered via `Agent(pptx-generator)`. Use when the brief will be presented live (EVP Comms meeting, board slot).
+   - **PDF** — crisis-PR-agency-grade board report. Use when leadership will read the full assessment (CEO / Chair / Board).
+   - **PowerPoint** — executive board deck (12-16 slides, McKinsey-style). Use when the brief will be presented live (EVP Comms meeting, board slot).
    - **Both PDF and PPTX** — the typical crisis-PR-agency pairing. Default for high-stakes runs.
 
-   If the user picks PDF or PPTX (or both), collect the `prepared_for` list (named executives) once and pass to each renderer. A reasonable default if the user doesn't specify: `prepared_for: <sender CEO>, <sender Chair>, <sender EVP Comms>` inferred from the ground-truth file.
+   If the user picks PDF or PPTX (or both), collect the `prepared_for` list (named executives) once and pass to each deliverable agent. A reasonable default if the user doesn't specify: `prepared_for: <sender CEO>, <sender Chair>, <sender EVP Comms>` inferred from the ground-truth file.
 
-4. Spawn the chosen renderer(s). Renderers can run in parallel — PDF and PPTX generation are independent.
+4. **Produce deliverables using native skills — not custom scripts.**
 
+   The deliverable agents do NOT write Python scripts to generate documents. They invoke Claude Code's native `/pdf` and `/pptx` skills, which natively know how to produce professional documents. The style guides provide the design brief; the native skills handle the production. This follows the core principle: **agentic subagents over deterministic scripts, all the way to the final output.**
+
+   For each requested format, spawn a general-purpose `Agent` with the following pattern:
+
+   **For PDF:**
    ```
-   Agent(pdf-renderer): run_dir, output_path=<run_dir>/deliverable.pdf, client_identifier, prepared_for, style_guide, reference_html
-   Agent(pptx-generator): run_dir, output_path=<run_dir>/deliverable.pptx, client_identifier, prepared_for, style_guide
+   Agent(general-purpose):
+     "You are producing a crisis-PR-agency-grade PDF deliverable for a stakeholder
+      simulation run. Use the /pdf skill to create the document.
+
+      Read these files for design instructions:
+      - Style guide: ${CLAUDE_SKILL_DIR}/templates/deliverables/pdf-style-guide.md
+      - Reference template: ${CLAUDE_SKILL_DIR}/templates/deliverables/pdf-reference.html
+
+      Read these files for content:
+      - Stimulus: <run_dir>/stimulus.md
+      - Plan: <run_dir>/plan.md
+      - Report: <run_dir>/report.md
+      - All persona findings: <run_dir>/findings/persona-*-final.md
+
+      Client: <client_identifier>
+      Prepared for: <prepared_for>
+      Output: <run_dir>/deliverable.pdf
+
+      The style guide is non-negotiable — follow the section order, typography,
+      color palette, hero-number convention, verb-first recommendations, and
+      the PDF/PPT role split it specifies. The reference HTML is a proven
+      working example — you may adapt its CSS directly.
+
+      Use /pdf to create the document. Do not write a Python script."
    ```
 
-5. When renderers complete, present the file paths to the user and offer to open them:
-   - macOS: `open <path>`
-   - Windows / Linux: user opens manually
+   **For PPTX:**
+   ```
+   Agent(general-purpose):
+     "You are producing an executive board deck for a stakeholder simulation
+      run. Use the /pptx skill to create the PowerPoint.
+
+      Read this file for design instructions:
+      - Style guide: ${CLAUDE_SKILL_DIR}/templates/deliverables/pptx-style-guide.md
+
+      Read these files for content:
+      - Stimulus: <run_dir>/stimulus.md
+      - Plan: <run_dir>/plan.md
+      - Report: <run_dir>/report.md
+      - All persona findings: <run_dir>/findings/persona-*-final.md
+
+      Client: <client_identifier>
+      Prepared for: <prepared_for>
+      Output: <run_dir>/deliverable.pptx
+
+      The style guide is non-negotiable — follow the canonical slide sequence,
+      action-title rule (ghost-deck test), navy palette, Georgia+Calibri
+      typography, verb-first recommendation titles, and the PDF/PPT role split.
+
+      Use /pptx to create the document. Do not write a standalone Python
+      script from scratch — use the native skill's document production
+      capabilities."
+   ```
+
+   Both agents can run in parallel — PDF and PPTX generation are independent.
+
+5. When deliverables complete, present the file paths to the user and offer to open them.
 
 6. Offer follow-ups:
    - Add a specific missing persona and re-run that persona only
@@ -217,7 +272,7 @@ Output: `verification.md`.
 ## Hard rules
 
 - **Plan approval is not optional.** If the user says "just run it", still show the plan and accept the confirmation — the plan step catches miscast personas cheaply.
-- **Every transformation is agentic.** Classification, extraction, research, verification — all done by subagents. No regex, no hardcoded parsers.
+- **Every transformation is agentic — including the final deliverables.** Classification, extraction, research, verification, and document production — all done by subagents using native skills (`/pdf`, `/pptx`). No regex, no hardcoded parsers, no standalone Python scripts writing files from scratch.
 - **Personas never see each other's reactions** before submitting.
 - **Never invent a quote.** Only what personas actually wrote. Quote-verifier will catch inventions.
 - **Never break the fourth wall inside persona prompts** (no "simulate", "roleplay", "LLM" — personas live in their world).
@@ -232,7 +287,7 @@ Output: `verification.md`.
 
 - **Orchestrator (you):** Opus 4.6 with high effort. You are doing coordination, not content.
 - **Research agents** (stimulus-analyzer, client-researcher, stakeholder-mapper, persona-builder): Sonnet 4.6. Extraction and classification are a Sonnet-level task.
-- **Renderer agents** (pdf-renderer, pptx-generator): Sonnet 4.6. Production of the PDF and PPTX deliverables.
+- **Deliverable agents** (general-purpose, invoking `/pdf` and `/pptx` native skills): inherit session model. Production of the PDF and PPTX deliverables via native skills — not custom scripts.
 - **Persona workers, critic:** Sonnet 4.6. Many in parallel.
 - **Synthesizer:** Opus 4.6 with high effort. The synthesis is the hard-reasoning step.
 - **Quote verifier:** Sonnet 4.6. Judgment-based comparison.
