@@ -29,11 +29,13 @@ plugins/stakeholder-sim/
     ├── critic.md                       # Sonnet 4.6 — quality-gate rubric pass
     ├── synthesizer.md                  # Opus 4.6 — write the stakeholder reaction report
     └── quote-verifier.md               # Sonnet 4.6 — verify every quote is real
+    # deliverable phase — uses native /pdf and /pptx skills, NOT custom agents
+    # style guides at templates/deliverables/ provide the design brief
 ```
 
-## Agentic everything
+## Agentic everything — including the final output
 
-Following the internal convention: **prefer Claude subagents over deterministic scripts** for any extraction, classification, research, or verification step. There is no regex parser, no hardcoded scraper, no Python script in this plugin. Every transformation is a Sonnet or Opus subagent with native tools. Orchestration (file I/O, parallel spawn, state management) is the only place deterministic code appears — and for this plugin, the orchestrator itself is a Claude agent following SKILL.md instructions.
+Following the internal convention: **prefer Claude subagents with native skills over deterministic scripts** for every step, including document production. There is no regex parser, no hardcoded scraper, no Python script in this plugin. Every transformation — extraction, classification, research, verification, AND the final PDF/PPTX deliverables — is a Claude subagent using native tools and skills (`/pdf`, `/pptx`). The orchestrator spawns general-purpose agents that invoke the native document-production skills, guided by the style guides at `templates/deliverables/`. The skills handle the rendering; the agent makes the design and content decisions.
 
 ## Architecture
 
@@ -84,6 +86,15 @@ preset?    research?
              ▼ (if REVISE, re-spawn synthesizer with corrections)
              │
         report.md → user
+             │
+             ▼ (user picks output formats)
+             │
+   ┌─────────┼──────────┐
+   │         │          │
+/pdf skill  /pptx skill  (via general-purpose subagents + style guides)
+   │         │
+   ▼         ▼
+deliverable.pdf   deliverable.pptx
 ```
 
 ## Key design principles
