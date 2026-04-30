@@ -49,6 +49,17 @@
       "source": "./plugins/stakeholder-sim",
       "category": "productivity",
       "homepage": "https://github.com/simonstrumse/vibelabs-plugins"
+    },
+    {
+      "name": "tone-of-voice",
+      "description": "Universal tone-of-voice and anti-AI writing principles. Layers with project-specific tone/ files. Bootstraps new projects on demand.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Simon Strumse"
+      },
+      "source": "./plugins/tone-of-voice",
+      "category": "productivity",
+      "homepage": "https://github.com/simonstrumse/vibelabs-plugins"
     }
   ]
 }
