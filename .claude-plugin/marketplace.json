@@ -51,6 +51,17 @@
       "homepage": "https://github.com/simonstrumse/vibelabs-plugins"
     },
     {
+      "name": "pre-flight",
+      "description": "Pre-publication stakeholder reaction simulation. Mode-routed: pressure-tests a statement, press release, positioning deck, earnings script, M&A announcement, comment letter, or rebrand narrative against a dynamically-researched cast. Scopes via AskUserQuestion, composes the run from 12 modes grounded in real PR practice (crisis pre-flight, tabletop, launch pre-mortem, regulatory response, deal comms, earnings rehearsal, positioning pressure test, counterfactual compare, red-team read, activist-proxy, exec-transition, internal-first), and emits a mode-keyed report plus canonical artifacts (holding statement, Q&A doc, message house, stakeholder heat map, day-1/30/100 plan). Persona bundles built per run with interview-grade fidelity (Park et al. 2024) — verbatim signature quotes, forbidden phrases, multi-lens expert reflection.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Vibe Labs"
+      },
+      "source": "./plugins/pre-flight",
+      "category": "productivity",
+      "homepage": "https://github.com/simonstrumse/vibelabs-plugins"
+    },
+    {
       "name": "tone-of-voice",
       "description": "Universal tone-of-voice and anti-AI writing principles. Layers with project-specific tone/ files. Bootstraps new projects on demand.",
       "version": "1.0.0",

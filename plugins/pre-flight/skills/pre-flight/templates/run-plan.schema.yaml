@@ -1,0 +1,126 @@
+# Run-plan schema
+#
+# The scoping-designer agent emits a run-plan conforming to this schema.
+# The orchestrator validates the plan against this grammar and refuses
+# unknown phases, unknown modes, or depth parameters out of range.
+#
+# Every field listed below is REQUIRED unless marked optional.
+
+run_id: <string>                    # e.g. "run-2026-04-18-143000"
+created_at: <ISO-8601 timestamp>    # when the designer emitted this plan
+
+# --- MODE -----------------------------------------------------------------
+mode:
+  name: <enum>                      # must be one of the published modes in modes/_index.md
+                                    # crisis-pre-flight | crisis-tabletop | launch-pre-mortem |
+                                    # regulatory-response | deal-comms | earnings-rehearsal |
+                                    # positioning-pressure-test | counterfactual-compare |
+                                    # red-team-read | activist-proxy | exec-transition |
+                                    # internal-first
+  severity: low | medium | high | critical   # optional; only used by crisis modes — maps to UK Gold/Silver/Bronze if the buyer asks
+  rationale: <string>               # one sentence: why this mode for this stimulus
+
+# --- STIMULUS -------------------------------------------------------------
+stimulus:
+  path: <string>                    # relative to run dir, e.g. "stimulus.md"
+  type: <enum>                      # press-release | statement | qa-doc | positioning-deck |
+                                    # earnings-script | comment-letter | pitch-deck | other
+  title: <string>                   # one-line descriptor
+  word_count: <int>                 # for scope-match checking
+  is_mnpi: true | false             # material non-public information flag; orchestrator warns if true
+
+# --- CAST SPECIFICATION ---------------------------------------------------
+cast_spec:
+  size: <int>                       # default 12; gut-check 5; high-stakes 16-20
+  clusters:                         # per-cluster target counts; total should equal size
+    - cluster: <string>             # cluster label — see persona-bundle.schema.md
+      count: <int>
+      priority_tiers: [1, 2]        # allowed salience tiers in this cluster
+  prefer_named: true | false        # true when public record for this industry is rich
+  named_floor: <int>                # minimum verbatim signature quotes required to accept
+                                    # a persona as named (default 3)
+  custom_constraints:               # optional — specific exclusions or musts
+    - <string>                      # e.g. "must include at least one proxy-advisor persona"
+
+# --- PHASES ---------------------------------------------------------------
+# Phases run in the order listed. Designer composes from the phase library
+# (reference/phase-library.md). Unknown phase names are rejected by the
+# orchestrator.
+phases:
+  - name: factbase
+    params:
+      freshness_window_days: 30
+      web_fetch_budget: 8
+
+  - name: cast-design
+    params:
+      use_salience_scoring: true
+
+  - name: deep-research
+    params:
+      parallelism: 12
+      per_persona_timeout_s: 120
+
+  - name: initial-reactions
+    params:
+      parallelism: 12
+      prepend_signature_opener: true
+
+  - name: critic
+    params:
+      parallelism: 12
+      max_revise_cycles: 2          # capped at 2 per Park/Roleplay-doh
+
+  # --- Optional phases (only present if the mode requires them) ---
+
+  - name: social-dynamics           # only for crisis-tabletop, deal-comms
+    params:
+      pairings: natural-antagonist  # or: cross-cluster | explicit
+      rounds: 2
+
+  - name: memory-update             # only for multi-round modes
+    params:
+      scope: within-run | cross-run  # cross-run requires user opt-in
+      style: summary-only            # full-reactions never persisted cross-run
+
+  - name: debate                    # only for earnings-rehearsal, regulatory-response, activist-proxy, red-team-read
+    params:
+      exchanges: 3
+      pairings: <list of persona-pair tuples>
+
+  - name: counterfactual            # only for counterfactual-compare
+    params:
+      drafts:
+        - path: <string>            # path to draft A
+        - path: <string>            # path to draft B
+        - path: <string>            # optional draft C
+
+  - name: synthesis                 # always last; always present
+    params:
+      skeleton_path: <string>       # templates/report-skeletons/<mode>.md
+      artifacts:                    # mode-specific artifacts to emit
+        - holding-statement
+        - qa-doc
+        - message-house
+        - stakeholder-heat-map
+        # (additional per mode)
+
+# --- REPORT ---------------------------------------------------------------
+report:
+  skeleton_path: <string>           # templates/report-skeletons/<mode>.md
+  target_word_count: <int>          # based on cast size per core skeleton
+  artifacts_dir: <string>           # pre-flight-runs/<run>/artifacts/
+
+# --- MEMORY OPT-IN --------------------------------------------------------
+memory:
+  cross_run_enabled: true | false   # default false
+  industry_key: <string>            # e.g. "eu-pharma" | "us-banking" | "apac-semiconductors"
+                                    # required if cross_run_enabled: true
+  user_consent_recorded: true | false  # must be true if cross_run_enabled: true
+
+# --- PROVENANCE -----------------------------------------------------------
+designer_reasoning: <string>        # 2-4 sentence explanation of the designer's key choices
+                                    # (mode selection, cast size, phase composition)
+user_answers:                       # captured AskUserQuestion answers
+  - question: <string>
+    answer: <string>
