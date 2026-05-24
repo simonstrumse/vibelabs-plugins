@@ -92,11 +92,13 @@ for notifications / approval Feed / session restore across codex, gemini, openco
 more. See [`plugins/cmux/`](plugins/cmux/) for the full tested/needs-setup matrix.
 
 **Memory management** — idle Claude sessions each hold ~130–600 MB. `cmux-sessions` audits them
-and gracefully suspends the idle ones (lossless: conversations save on exit, resume with one Enter):
+and gracefully suspends the ones **you pick** (lossless: conversations save on exit, resume with one
+Enter). Suspension is manual by design — loop detection isn't 100% reliable, so nothing is auto-killed:
 
 ```bash
-cmux-sessions             # report RAM/CPU per agent session
-cmux-sessions auto        # dry run; `auto --yes` suspends all idle (respects ~/.config/cmux/keep-alive)
+cmux-sessions             # audit RAM/CPU per agent session
+cmux-sessions suggest     # list idle candidates to review (suspends nothing)
+cmux-sessions suspend ws:N   # suspend the one(s) you choose (keep-list: ~/.config/cmux/keep-alive)
 ```
 
 ## Requirements

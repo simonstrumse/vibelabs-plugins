@@ -26,23 +26,26 @@ works without them (the agent parses cmux's JSON itself).
 
 ## Free RAM from idle sessions
 
-Idle Claude sessions sit at ~0% CPU but each holds ~130–600 MB. `cmux-sessions` reports them and
-gracefully suspends the idle ones (exit the agent, leaving the resume command ready) — lossless,
-since conversations are saved on exit.
+Idle Claude sessions sit at ~0% CPU but each holds ~130–600 MB. `cmux-sessions` **audits** them and
+gracefully suspends the ones **you choose** (exit the agent, leaving the resume command ready) —
+lossless, since conversations are saved on exit.
 
 ```bash
-cmux-sessions                 # report: per-workspace agent, RAM, CPU, suspendable/busy/keep
-cmux-sessions auto            # DRY RUN: idle Claude workspaces that would be suspended
-cmux-sessions auto --yes      # suspend them all (respects keep-list)
-cmux-sessions suspend ws:12   # suspend one; resume = open its tab and press Enter
+cmux-sessions                 # AUDIT: per-workspace agent, RAM, CPU, idle/busy
+cmux-sessions scan            # accurate-ish loop/busy/idle (focuses each ws, restores)
+cmux-sessions suggest         # list idle candidates to review (suspends nothing)
+cmux-sessions suspend ws:N    # suspend the one(s) YOU pick; resume = open its tab + press Enter
 ```
 
-It focuses each target before acting (so it can verify the session is genuinely idle, not mid-task),
-confirms the Claude process actually exits, leaves `claude --resume <id>`/`--continue` ready, renames
-the tab `💤 …`, and restores your focus. **Default is confirm-each**; `auto --yes` is opt-in.
+**Suspension is manual by design** — there is no blanket auto-suspend. Loop detection isn't 100%
+reliable (a pure `/loop` is invisible while it sleeps between ticks), so nothing is ever killed
+unattended: you review, you pick. `suspend` re-checks the target as a backstop (focuses it, skips
+if busy/looping unless `--force`, confirms the process exits, leaves `claude --resume`/`--continue`
+ready, renames the tab `💤 …`, restores your focus).
 
 **Keep-list:** put any `/loop`/watcher session (looks idle, isn't) in `~/.config/cmux/keep-alive`
-(one workspace name or ref per line) — `auto` always skips those.
+(one workspace name or ref per line) — `suggest` marks it `keep` and never proposes it. It's the
+deterministic guard for loops the screen-based detection can't see.
 
 ## Quick start
 
