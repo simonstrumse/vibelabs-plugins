@@ -62,6 +62,22 @@ claude plugin install stakeholder-sim
 
 Credits: [Anthropic multi-agent research system](https://www.anthropic.com/engineering/built-multi-agent-research-system), [Park et al. 2024](https://arxiv.org/abs/2411.10109), [Mirofish / CAMEL-AI OASIS](https://github.com/666ghj/MiroFish).
 
+### cmux
+
+Control the [cmux](https://cmux.com) terminal app from a Claude Code session. Spawn or reuse
+workspaces, open terminal tabs rooted in a folder, launch Claude Code / Codex / a shell in
+them, send keystrokes, and read terminal output back — fully headless, no AppleScript.
+
+```bash
+claude plugin install cmux
+
+# Then just ask, e.g. "open a Claude session in cmux for ~/code/my-project",
+# or use the bundled helper:  ccx ~/code/my-project
+```
+
+Works out of the box on any machine with cmux + Claude Code installed — no config, no keys.
+`ccx <folder>` smartly reuses the folder's workspace as a new tab if it exists, else creates it.
+
 ## Requirements
 
 - [Claude Code](https://claude.ai/code) CLI installed

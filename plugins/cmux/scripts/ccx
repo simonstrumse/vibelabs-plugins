@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# ccx — launch a ready agent session in the cmux app for a folder.
+#
+# Smart behavior:
+#   • If a cmux workspace is already rooted in <folder>, add a new terminal TAB to it.
+#   • Otherwise create a NEW workspace rooted at <folder> (its first tab is the session).
+# In both cases the terminal lands in <folder> and runs $CCX_CMD
+# (default: Claude Code with --dangerously-skip-permissions).
+#
+# Works out of the box on any machine with cmux + Claude Code installed.
+# jq or python3 is used for smart workspace-matching when present; without either,
+# it still works but always creates a new workspace (no tab-reuse detection).
+#
+# Usage:
+#   ccx [folder] [workspace-name]
+#     folder          defaults to current dir; ~ and relative paths are resolved
+#     workspace-name  only used when creating a new workspace (defaults to folder basename)
+#
+# Env:
+#   CCX_CMD   command to run in the session (default: "claude --dangerously-skip-permissions")
+#             e.g. CCX_CMD="codex" ccx ~/code/foo   /   CCX_CMD="$SHELL -l" ccx .  (plain shell)
+#   CMUX_BIN  explicit path to the cmux CLI (otherwise auto-detected)
+#
+# Examples:
+#   ccx ~/code/my-project
+#   ccx .                       # current directory
+#   ccx ~/code/foo "Foo Bar"    # custom workspace name on first creation
+#   CCX_CMD=codex ccx ~/code/foo
+
+set -euo pipefail
+
+# --- locate the cmux CLI (PATH first, then known install locations, macOS + Linux) ---
+CM="${CMUX_BIN:-}"
+if [ -z "$CM" ]; then
+  for cand in \
+    "$(command -v cmux 2>/dev/null || true)" \
+    "/Applications/cmux.app/Contents/Resources/bin/cmux" \
+    "$HOME/Applications/cmux.app/Contents/Resources/bin/cmux" \
+    "/usr/local/bin/cmux" \
+    "/opt/cmux/bin/cmux"; do
+    if [ -n "$cand" ] && [ -x "$cand" ]; then CM="$cand"; break; fi
+  done
+fi
+[ -n "${CM:-}" ] && [ -x "$CM" ] || {
+  echo "ccx: cmux CLI not found. Install cmux, or set CMUX_BIN=/path/to/cmux." >&2; exit 1; }
+
+CMD="${CCX_CMD:-claude --dangerously-skip-permissions}"
+
+# --- resolve target folder to an absolute, canonical path ---
+dir="${1:-$PWD}"
+dir="${dir/#\~/$HOME}"
+[ -d "$dir" ] || { echo "ccx: no such directory: $dir" >&2; exit 1; }
+dir="$(cd "$dir" && pwd -P)"
+name="${2:-$(basename "$dir")}"
+
+# --- find an existing workspace whose current_directory matches (jq -> python3 -> none) ---
+find_ws() {
+  local json; json="$("$CM" list-workspaces --json 2>/dev/null || true)"
+  [ -n "$json" ] || return 0
+  if command -v jq >/dev/null 2>&1; then
+    printf '%s' "$json" | jq -r --arg d "$dir" \
+      '.workspaces[] | select(.current_directory == $d) | .ref' | head -n1
+  elif command -v python3 >/dev/null 2>&1; then
+    printf '%s' "$json" | python3 -c 'import sys,json
+d=sys.argv[1]
+data=json.load(sys.stdin).get("workspaces",[])
+m=[w.get("ref") for w in data if w.get("current_directory")==d]
+print(m[0] if m else "")' "$dir"
+  fi
+}
+ws="$(find_ws || true)"
+
+if [ -n "${ws:-}" ]; then
+  echo "ccx: found workspace $ws rooted at $dir — opening a new tab"
+  # plain output: "OK surface:<n> pane:<n> workspace:<n>" -> ref is field 2 (no jq needed)
+  su="$("$CM" new-surface --type terminal --workspace "$ws" --focus true | awk '{print $2}')"
+  [ -n "$su" ] || { echo "ccx: failed to create tab in $ws" >&2; exit 1; }
+  sleep 2   # let the pty come up before sending input ("Surface is not a terminal" otherwise)
+  "$CM" send     --workspace "$ws" --surface "$su" "cd $(printf %q "$dir") && $CMD" >/dev/null
+  "$CM" send-key --workspace "$ws" --surface "$su" enter >/dev/null
+  "$CM" select-workspace --workspace "$ws" >/dev/null 2>&1 || true
+  echo "ccx: launched in a new tab of $ws"
+else
+  echo "ccx: no workspace rooted at $dir — creating one"
+  "$CM" new-workspace --name "$name" --cwd "$dir" --command "$CMD" --focus true
+  echo "ccx: created workspace \"$name\" and launched session"
+fi
