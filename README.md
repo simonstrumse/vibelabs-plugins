@@ -65,8 +65,8 @@ Credits: [Anthropic multi-agent research system](https://www.anthropic.com/engin
 ### cmux
 
 Control the [cmux](https://cmux.com) terminal app from a Claude Code session. Spawn or reuse
-workspaces, open terminal tabs rooted in a folder, launch Claude Code / Codex / a shell in
-them, send keystrokes, and read terminal output back — fully headless, no AppleScript.
+workspaces, open terminal tabs rooted in a folder, launch an agent in them, send keystrokes,
+and read terminal output back — fully headless, no AppleScript.
 
 ```bash
 claude plugin install cmux
@@ -77,6 +77,19 @@ claude plugin install cmux
 
 Works out of the box on any machine with cmux + Claude Code installed — no config, no keys.
 `ccx <folder>` smartly reuses the folder's workspace as a new tab if it exists, else creates it.
+
+**Defaults to Claude Code**, with tested support for other agents via `CCX_CMD`:
+
+```bash
+ccx ~/code/foo                                                  # Claude Code (default)
+CCX_CMD="cmux claude-teams --dangerously-skip-permissions" ccx ~/code/foo   # Claude + agent teams
+CCX_CMD=codex ccx ~/code/foo            # Codex   (CCX_CMD="cmux codex-teams" for subagent panes)
+CCX_CMD=opencode ccx ~/code/foo         # OpenCode
+```
+
+Also wraps cmux's native multi-agent launchers (`omo`, `omx`, `omc`) and `cmux hooks setup`
+for notifications / approval Feed / session restore across codex, gemini, opencode, cursor and
+more. See [`plugins/cmux/`](plugins/cmux/) for the full tested/needs-setup matrix.
 
 ## Requirements
 
