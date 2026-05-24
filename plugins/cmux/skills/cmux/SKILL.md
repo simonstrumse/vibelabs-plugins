@@ -182,8 +182,9 @@ saved on `/exit`, so resuming is lossless.
 
 ```bash
 S="${CLAUDE_PLUGIN_ROOT}/scripts/cmux-sessions"
-"$S"                       # AUDIT: per-workspace agent, RAM, CPU, idle/busy
-"$S" scan                  # accurate-ish loop/busy/idle (focuses each ws, restores focus)
+"$S"                       # AUDIT: per-workspace agent, RAM, CPU, idle/busy (fast, no focus)
+"$S" list                  # cleanup view: each agent's WHERE (folder) + WHAT it's doing + state
+"$S" scan                  # alias of list (also: describe) — focuses each ws, restores focus
 "$S" suggest               # list idle suspend candidates to review (suspends nothing)
 "$S" suspend workspace:N   # suspend the workspace(s) YOU name (focus → verify → /exit → resume-ready)
 "$S" resume workspace:N    # focus a suspended workspace and run its ready resume command

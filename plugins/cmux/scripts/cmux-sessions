@@ -87,6 +87,24 @@ BUSY_RE='esc to interrupt|esc to cancel'
 is_loop_screen() { printf '%s' "$1" | grep -qiE "$LOOP_RE"; }
 is_busy_screen() { printf '%s' "$1" | grep -qiE "$BUSY_RE"; }
 
+# One-line gist of WHAT a session is doing, from its screen ($1). Prefers a "recap:" line,
+# else the last assistant action (⏺) line, else the last content line. Strips UI chrome.
+gist_of_screen() {
+  printf '%s' "$1" | awk '
+    /recap:/                              { s=$0; sub(/.*recap:[[:space:]]*/,"",s); recap=s }
+    /^[[:space:]]*⏺/                      { act=$0 }
+    /^[[:space:]]*[─│╰╭┌└├▔|]+/           { next }                      # box drawing
+    /Opus 4|Sonnet 4|Haiku 4|bypass permissions|Resets:|% used|Current:|Weekly:|MCP \// { next }   # status bar
+    /^[[:space:]]*❯/                      { next }                      # input prompt
+    /^[[:space:]]*[✻✽✶✷·][[:space:]]*(Brewed|Cogitated|Noodling|Germinating|Distilling|Saut|Churned|Crunched|Worked|Baked|Thinking|Ran |Read )/ { next }  # spinners
+    NF                                    { content=$0 }
+    END {
+      g = recap; if (g=="") g = act; if (g=="") g = content
+      sub(/^[[:space:]]*[⏺※•↳⎿][[:space:]]*/,"",g); sub(/[[:space:]]+$/,"",g)
+      print substr(g,1,110)
+    }'
+}
+
 resume_cmd_for_ws() {  # exact resume command using the workspace cwd's newest session id
   local ws="$1" cwd enc proj sid=""
   cwd="$("$CM" list-workspaces --json 2>/dev/null | jq -r --arg w "$ws" '.workspaces[]|select(.ref==$w)|.current_directory' 2>/dev/null)"
@@ -170,25 +188,36 @@ case "$MODE" in
     done
     printf '\n]\n'
     ;;
-  scan)
-    # Accurate state per workspace: focuses each Claude workspace to read its SELECTED tab,
-    # then restores focus. Disruptive (cycles focus) but the only reliable loop/busy signal.
-    echo "Deep scan — focuses each Claude workspace's selected tab, restores focus after…"
-    printf '%-12s %-30s %-7s %6s  %s\n' WS NAME STATE RAM NOTE
+  scan|list|describe)
+    # Cleanup-decision view: for each running agent, WHERE it runs (folder) + WHAT it's doing.
+    # Focuses each Claude workspace to read its selected tab (the only reliable signal), restores
+    # focus after. Use this before suspending anything.
+    echo "Running agents — where they run & what they do (focuses each ws, restores focus)…"
+    echo
     prev="$("$CM" current-workspace 2>/dev/null | awk '{print $1}')"
     ws_lines | while IFS=$'\t' read -r ws name; do
       set -- $(ws_info "$ws"); agent="$1"; rss="$2"; cpu="$3"
-      [ "$agent" = claude ] || continue
-      "$CM" select-workspace --workspace "$ws" >/dev/null 2>&1; sleep 1
-      scr="$("$CM" read-screen --workspace "$ws" --lines 40 2>/dev/null)"
-      if   is_loop_screen "$scr"; then state=LOOP
-      elif is_busy_screen "$scr" || [ "${cpu%%.*}" -ge "$BUSY_CPU" ] 2>/dev/null; then state=busy
-      else state=idle; fi
-      kp=""; in_keeplist "$name" "$ws" && kp="keep"
-      printf '%-12s %-30.30s %-7s %5sM  %s\n' "$ws" "$name" "$state" "$rss" "$kp"
+      [ "$agent" = shell ] && continue
+      cwd="$("$CM" list-workspaces --json 2>/dev/null | jq -r --arg w "$ws" '.workspaces[]|select(.ref==$w)|.current_directory' 2>/dev/null)"
+      cwd="${cwd/#$HOME/~}"
+      doing=""; state="idle"
+      if [ "$agent" = claude ]; then
+        "$CM" select-workspace --workspace "$ws" >/dev/null 2>&1; sleep 1
+        scr="$("$CM" read-screen --workspace "$ws" --lines 40 2>/dev/null)"
+        if   is_loop_screen "$scr"; then state=LOOP
+        elif is_busy_screen "$scr" || [ "${cpu%%.*}" -ge "$BUSY_CPU" ] 2>/dev/null; then state=busy
+        else state=idle; fi
+        doing="$(gist_of_screen "$scr")"
+      else state="$agent"; fi
+      flags="$state"; in_keeplist "$name" "$ws" && flags="$flags, keep"
+      printf '%-11s %-26.26s  %5sM  [%s]\n' "$ws" "$name" "$rss" "$flags"
+      printf '            where: %s\n' "${cwd:-?}"
+      [ -n "$doing" ] && printf '            doing: %s\n' "$doing"
+      echo
     done
     [ -n "$prev" ] && "$CM" select-workspace --workspace "$prev" >/dev/null 2>&1
-    echo "(reflects each workspace's SELECTED tab; a loop in a non-selected tab of a multi-tab workspace isn't seen)"
+    echo "Notes: 'doing' is the selected tab's latest line (a loop in a background tab isn't seen)."
+    echo "       LOOP/keep = protected; suspend only what you recognise as safe: cmux-sessions suspend <ws> …"
     ;;
   report|"")
     printf '%-12s %-30s %-9s %6s %5s %4s  %s\n' WS NAME AGENT RAM CPU PROC NOTE

@@ -31,8 +31,8 @@ gracefully suspends the ones **you choose** (exit the agent, leaving the resume 
 lossless, since conversations are saved on exit.
 
 ```bash
-cmux-sessions                 # AUDIT: per-workspace agent, RAM, CPU, idle/busy
-cmux-sessions scan            # accurate-ish loop/busy/idle (focuses each ws, restores)
+cmux-sessions                 # AUDIT: per-workspace agent, RAM, CPU, idle/busy (fast)
+cmux-sessions list            # cleanup view: each agent's folder (where) + what it's doing + state
 cmux-sessions suggest         # list idle candidates to review (suspends nothing)
 cmux-sessions suspend ws:N    # suspend the one(s) YOU pick; resume = open its tab + press Enter
 ```
