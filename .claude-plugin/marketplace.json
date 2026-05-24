@@ -75,7 +75,7 @@
     {
       "name": "cmux",
       "description": "Spawn and drive Claude Code (or any) sessions inside the cmux app from a Claude session — create/reuse workspaces, open tabs rooted in a folder, send keystrokes, and read terminal output over the cmux CLI. Works out of the box on any machine with cmux + Claude Code.",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "author": {
         "name": "Vibe Labs"
       },

@@ -126,6 +126,7 @@ case "$MODE" in
       else echo "  idle   $ws $name (${rss}MB, cpu ${cpu}%) — would suspend"; fi
     done
     [ -n "$yes" ] && "$CM" memory 2>/dev/null | head -1
+    exit 0
     ;;
   --json)
     printf '['; first=1
