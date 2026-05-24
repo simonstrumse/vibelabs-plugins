@@ -3,9 +3,10 @@ name: cmux
 description: >
   Control the cmux terminal app from a Claude session over its CLI. Spawn or reuse
   a workspace, open a terminal tab rooted in a folder, launch Claude Code / Codex / a
-  shell in it, send keystrokes, and read terminal output back. Trigger: cmux, "open a
-  workspace", "new tab", "launch a claude session in cmux", "spawn a session", "drive
-  a terminal", "read the terminal", ccx.
+  shell in it, send keystrokes, read terminal output, and manage memory by suspending
+  idle agent sessions (free RAM, resume later). Trigger: cmux, "open a workspace",
+  "new tab", "launch a claude session in cmux", "spawn a session", "drive a terminal",
+  "read the terminal", "idle sessions using RAM", "free memory", "suspend sessions", ccx.
 ---
 
 # cmux orchestration
@@ -171,6 +172,44 @@ headless. `--scrollback` and `--lines <n>` control how much you get.
 "$CM" browser snapshot --interactive        # accessibility snapshot for automation
 "$CM" browser click "<selector>"; "$CM" browser screenshot --out /tmp/shot.png
 ```
+
+## 9. Session memory management — reclaim RAM from idle agents
+
+Idle Claude Code sessions sit at ~0% CPU but each holds ~130–600 MB. The bundled
+`cmux-sessions` script audits them and gracefully suspends idle ones (exit the agent,
+leaving the resume command ready) to free that memory. Conversations are saved on `/exit`,
+so resuming is lossless.
+
+```bash
+S="${CLAUDE_PLUGIN_ROOT}/scripts/cmux-sessions"
+"$S"                       # report: per-workspace agent, RAM, CPU, suspendable/busy/keep
+"$S" --json                # machine-readable
+"$S" suspend workspace:12  # suspend a specific workspace (focus → verify idle → /exit → resume-ready)
+"$S" auto                  # DRY RUN: list idle Claude workspaces that would be suspended
+"$S" auto --yes            # suspend ALL idle Claude workspaces (respects keep-list)
+"$S" resume workspace:12   # focus a suspended workspace and run its ready resume command
+```
+
+**How it stays safe (all verified by testing):**
+- Detection is **per-workspace** via `cmux top --workspace` — accurate. Claude titles its own
+  process with its version (`2.1.150`), which is the detection marker.
+- Suspend **focuses the target first** (`select-workspace`) so keystrokes/reads are reliable,
+  **skips it if busy** (CPU ≥ 5% or "esc to interrupt" on screen), `/exit`s it, **confirms the
+  Claude process is gone**, leaves the resume command typed (not run), renames the tab `💤 …`,
+  and **restores your previous focus**.
+- **Resume:** the tab is left with `claude --resume <id> --dangerously-skip-permissions`
+  (exact session, when the id is found) or `claude --continue …` — press Enter to resume.
+- **Only Claude** is auto-suspended (exit/resume verified). Codex/OpenCode are reported only.
+
+**Keep-list (critical for loops):** `~/.config/cmux/keep-alive`, one workspace name or ref per
+line (`#` = comment). A session running `/loop` or watching something looks idle but must NOT be
+suspended — list it here and `auto` will skip it. The default policy is *confirm-each*: report,
+let the human pick, then `suspend <refs>`. `auto --yes` is the aggressive mode — use only once the
+keep-list covers every loop/watcher.
+
+**Known limits:** `read-screen`/`send` are unreliable on **background** (unfocused) tabs, which is
+why suspend focuses first. A pure dynamic `/loop` between ticks can look idle (0% CPU) — the
+keep-list is the guard. Multi-tab workspaces are acted on at the selected tab.
 
 ## Gotchas (learned by testing)
 

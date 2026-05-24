@@ -91,6 +91,14 @@ Also wraps cmux's native multi-agent launchers (`omo`, `omx`, `omc`) and `cmux h
 for notifications / approval Feed / session restore across codex, gemini, opencode, cursor and
 more. See [`plugins/cmux/`](plugins/cmux/) for the full tested/needs-setup matrix.
 
+**Memory management** — idle Claude sessions each hold ~130–600 MB. `cmux-sessions` audits them
+and gracefully suspends the idle ones (lossless: conversations save on exit, resume with one Enter):
+
+```bash
+cmux-sessions             # report RAM/CPU per agent session
+cmux-sessions auto        # dry run; `auto --yes` suspends all idle (respects ~/.config/cmux/keep-alive)
+```
+
 ## Requirements
 
 - [Claude Code](https://claude.ai/code) CLI installed

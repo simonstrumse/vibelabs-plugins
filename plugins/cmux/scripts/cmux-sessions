@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+# cmux-sessions — audit and free RAM from idle agent sessions in cmux.
+#
+# Idle Claude Code sessions sit at ~0% CPU but each holds ~130–600 MB. This tool
+# reports per-workspace agent RAM and can gracefully suspend idle Claude sessions
+# (exit the agent, leaving the resume command ready) to reclaim memory. The
+# conversation is saved on /exit, so resuming with `claude --continue` is lossless.
+#
+# Usage:
+#   cmux-sessions                 Report agent sessions: agent, RAM, CPU, idle/busy hint
+#   cmux-sessions --json          Machine-readable
+#   cmux-sessions suspend <ws>…   Suspend specific workspaces (workspace:N refs)
+#   cmux-sessions auto            DRY RUN: list idle Claude workspaces that would be suspended
+#   cmux-sessions auto --yes      Suspend all idle Claude workspaces (respects keep-list)
+#   cmux-sessions resume <ws>     Press Enter in a suspended workspace to run its resume command
+#
+# Reliability notes (verified):
+#   • Detection is per-WORKSPACE via `cmux top --workspace` (accurate). Claude titles its
+#     own process with its version (e.g. 2.1.150) — that's the detection marker.
+#   • Suspend FOCUSES the target first (select-workspace), so its keystrokes/read are reliable,
+#     verifies it's not mid-task ("esc to interrupt"), exits it, confirms the Claude process is
+#     gone, then restores your previous focus. It acts on the workspace's selected tab.
+#   • Only CLAUDE is auto-suspendable (exit/resume verified). Codex/OpenCode are reported only.
+#
+# Safety:
+#   • Keep-list: ~/.config/cmux/keep-alive — one workspace name or ref per line (# = comment).
+#     Put anything running /loop or a watcher here; it looks idle but must not be killed.
+#   • A workspace with CPU above $BUSY_CPU%, or showing "esc to interrupt", is skipped (use --force).
+#
+# Env: CMUX_BIN (auto-detected), CMUX_KEEPLIST (keep-list path). Requires: awk, jq optional.
+
+set -o pipefail
+
+CM="${CMUX_BIN:-}"
+if [ -z "$CM" ]; then
+  for c in "$(command -v cmux 2>/dev/null || true)" \
+           "/Applications/cmux.app/Contents/Resources/bin/cmux" \
+           "$HOME/Applications/cmux.app/Contents/Resources/bin/cmux" \
+           "/usr/local/bin/cmux"; do
+    [ -n "$c" ] && [ -x "$c" ] && { CM="$c"; break; }
+  done
+fi
+[ -n "$CM" ] && [ -x "$CM" ] || { echo "cmux-sessions: cmux CLI not found (set CMUX_BIN)" >&2; exit 1; }
+
+KEEPFILE="${CMUX_KEEPLIST:-$HOME/.config/cmux/keep-alive}"
+BUSY_CPU="${CMUX_BUSY_CPU:-5}"
+CLAUDE_RESUME="claude --continue --dangerously-skip-permissions"
+
+# "ref<TAB>name" for each workspace (strips leading "* "/"  " and the selected marker)
+ws_lines() { "$CM" list-workspaces 2>/dev/null | sed -E 's/^[*[:space:]]+//' | awk 'NF{ref=$1;$1="";sub(/^[[:space:]]+/,"");print ref"\t"$0}'; }
+
+# "agent rss cpu ntabs" for a workspace (agent: claude|codex|opencode|shell)
+ws_info() {
+  local ws="$1" tc cmds agent rss cpu n
+  tc="$("$CM" top --workspace "$ws" --processes --format tsv 2>/dev/null)"
+  rss=$(printf '%s' "$tc" | awk -F'\t' '$4=="workspace"{print int($2/1048576);exit}')
+  cpu=$(printf '%s' "$tc" | awk -F'\t' '$4=="workspace"{print $1;exit}')
+  cmds=$(printf '%s' "$tc" | awk -F'\t' '$4=="process"{print $7}')
+  n=$(printf '%s\n' "$cmds" | grep -cE '^[0-9]+\.[0-9]+\.[0-9]+$')
+  if   [ "$n" -gt 0 ]; then agent=claude
+  elif printf '%s\n' "$cmds" | grep -qiE '^codex'; then agent=codex
+  elif printf '%s\n' "$cmds" | grep -qiE 'opencode'; then agent=opencode
+  else agent=shell; fi
+  echo "$agent ${rss:-0} ${cpu:-0} ${n:-0}"
+}
+
+in_keeplist() { [ -f "$KEEPFILE" ] && grep -vE '^[[:space:]]*#' "$KEEPFILE" | grep -qiF -e "$1" -e "$2" 2>/dev/null; }
+
+resume_cmd_for_ws() {  # exact resume command using the workspace cwd's newest session id
+  local ws="$1" cwd enc proj sid=""
+  cwd="$("$CM" list-workspaces --json 2>/dev/null | jq -r --arg w "$ws" '.workspaces[]|select(.ref==$w)|.current_directory' 2>/dev/null)"
+  if [ -n "$cwd" ] && [ "$cwd" != null ]; then
+    enc="$(printf '%s' "$cwd" | sed 's#/#-#g')"; proj="$HOME/.claude/projects/$enc"
+    [ -d "$proj" ] && sid="$(ls -1t "$proj"/*.jsonl 2>/dev/null | head -1 | xargs -I{} basename {} .jsonl 2>/dev/null)"
+  fi
+  [ -n "$sid" ] && echo "claude --resume $sid --dangerously-skip-permissions" || echo "$CLAUDE_RESUME"
+}
+
+claude_alive() { "$CM" top --workspace "$1" --processes --format tsv 2>/dev/null | awk -F'\t' '$4=="process"{print $7}' | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; }
+
+suspend_ws() {  # $1=ws $2=name [force]
+  local ws="$1" name="$2" force="${3:-}" agent rss cpu n prev rcmd i ok=0
+  set -- $(ws_info "$ws"); agent="$1"; rss="$2"; cpu="$3"; n="$4"
+  if [ "$agent" != claude ]; then echo "  skip $ws ($name): agent=$agent (claude only)"; return 1; fi
+  prev="$("$CM" current-workspace 2>/dev/null | awk '{print $1}')"
+  "$CM" select-workspace --workspace "$ws" >/dev/null 2>&1; sleep 1
+  if [ "$force" != force ]; then
+    if [ "${cpu%%.*}" -ge "$BUSY_CPU" ] 2>/dev/null; then echo "  skip $ws ($name): busy (cpu ${cpu}%) — use --force"; [ -n "$prev" ] && "$CM" select-workspace --workspace "$prev" >/dev/null 2>&1; return 1; fi
+    if "$CM" read-screen --workspace "$ws" --lines 30 2>/dev/null | grep -qiE 'esc to interrupt|esc to cancel'; then echo "  skip $ws ($name): busy (working) — use --force"; [ -n "$prev" ] && "$CM" select-workspace --workspace "$prev" >/dev/null 2>&1; return 1; fi
+  fi
+  rcmd="$(resume_cmd_for_ws "$ws")"
+  "$CM" send "/exit" --workspace "$ws" >/dev/null 2>&1
+  "$CM" send-key enter --workspace "$ws" >/dev/null 2>&1
+  for i in 1 2 3 4 5 6 7 8 9 10; do sleep 1; claude_alive "$ws" || { ok=1; break; }; done
+  if [ "$ok" != 1 ]; then echo "  WARN $ws ($name): Claude didn't exit — left as-is"; [ -n "$prev" ] && "$CM" select-workspace --workspace "$prev" >/dev/null 2>&1; return 1; fi
+  "$CM" send "$rcmd" --workspace "$ws" >/dev/null 2>&1                        # leave resume typed, not run
+  "$CM" rename-workspace --workspace "$ws" "💤 ${name#✳ }" >/dev/null 2>&1 || true
+  [ -n "$prev" ] && "$CM" select-workspace --workspace "$prev" >/dev/null 2>&1
+  echo "  suspended $ws ($name) — freed ~${rss}MB — resume ready: $rcmd"
+}
+
+MODE="${1:-report}"; shift 2>/dev/null || true
+
+case "$MODE" in
+  suspend)
+    [ "$#" -gt 0 ] || { echo "usage: cmux-sessions suspend <workspace:N> ... [--force]" >&2; exit 1; }
+    force=""; refs=""
+    for a in "$@"; do [ "$a" = "--force" ] && force=force || refs="$refs $a"; done
+    for r in $refs; do name="$(ws_lines | awk -F'\t' -v r="$r" '$1==r{print $2}')"; suspend_ws "$r" "${name:-$r}" "$force"; done
+    "$CM" memory 2>/dev/null | head -1
+    ;;
+  resume)
+    [ "$#" -gt 0 ] || { echo "usage: cmux-sessions resume <workspace:N>" >&2; exit 1; }
+    for r in "$@"; do "$CM" select-workspace --workspace "$r" >/dev/null 2>&1; "$CM" send-key enter --workspace "$r" >/dev/null 2>&1; echo "  resumed $r"; done
+    ;;
+  auto)
+    yes=""; [ "${1:-}" = "--yes" ] && yes=yes
+    [ -n "$yes" ] && echo "SUSPENDING idle Claude workspaces (keep-list: $KEEPFILE):" \
+                  || echo "DRY RUN — idle Claude workspaces that would be suspended (keep-list: $KEEPFILE):"
+    ws_lines | while IFS=$'\t' read -r ws name; do
+      set -- $(ws_info "$ws"); agent="$1"; rss="$2"; cpu="$3"
+      [ "$agent" = claude ] || continue
+      if in_keeplist "$name" "$ws"; then echo "  keep   $ws $name (keep-list)"; continue; fi
+      if [ "${cpu%%.*}" -ge "$BUSY_CPU" ] 2>/dev/null; then echo "  busy   $ws $name (${rss}MB, cpu ${cpu}%) — skip"; continue; fi
+      if [ -n "$yes" ]; then suspend_ws "$ws" "$name"
+      else echo "  idle   $ws $name (${rss}MB, cpu ${cpu}%) — would suspend"; fi
+    done
+    [ -n "$yes" ] && "$CM" memory 2>/dev/null | head -1
+    ;;
+  --json)
+    printf '['; first=1
+    ws_lines | while IFS=$'\t' read -r ws name; do
+      set -- $(ws_info "$ws"); agent="$1"; rss="$2"; cpu="$3"; n="$4"
+      [ "$agent" = shell ] && continue
+      keep=false; in_keeplist "$name" "$ws" && keep=true
+      [ $first -eq 1 ] && first=0 || printf ','
+      printf '\n  {"workspace":"%s","name":"%s","agent":"%s","rss_mb":%s,"cpu":%s,"claude_tabs":%s,"keep":%s}' \
+        "$ws" "$(printf '%s' "$name" | sed 's/"/\\"/g')" "$agent" "$rss" "$cpu" "$n" "$keep"
+    done
+    printf '\n]\n'
+    ;;
+  report|"")
+    printf '%-12s %-30s %-9s %6s %5s %4s  %s\n' WS NAME AGENT RAM CPU PROC NOTE
+    ws_lines | { tot=0; idlec=0; idler=0
+      while IFS=$'\t' read -r ws name; do
+        set -- $(ws_info "$ws"); agent="$1"; rss="$2"; cpu="$3"; n="$4"
+        [ "$agent" = shell ] && continue
+        tot=$((tot+rss)); note=""
+        in_keeplist "$name" "$ws" && note="keep"
+        if [ "${cpu%%.*}" -ge "$BUSY_CPU" ] 2>/dev/null; then note="${note:+$note,}busy?"; fi
+        if [ "$agent" = claude ] && [ -z "$note" ]; then idlec=$((idlec+1)); idler=$((idler+rss)); note="suspendable"; fi
+        printf '%-12s %-30.30s %-9s %5sM %4s%% %4s  %s\n' "$ws" "$name" "$agent" "$rss" "$cpu" "$n" "$note"
+      done
+      echo "----"
+      echo "agent RAM total: ${tot}MB   |   suspendable idle Claude: ${idlec} workspaces ~ ${idler}MB"
+      echo "→ cmux-sessions auto            (dry run)"
+      echo "  cmux-sessions auto --yes       (suspend all idle Claude)"
+      echo "  cmux-sessions suspend <ws> …   (specific)   |   resume: open tab + press Enter"
+    }
+    ;;
+  *) echo "unknown command: $MODE (try: report | --json | suspend | resume | auto)" >&2; exit 1;;
+esac
