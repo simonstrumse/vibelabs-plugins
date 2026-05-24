@@ -39,6 +39,25 @@ ccx ~/code/my-project          # smart: new workspace, or a tab if one exists fo
 CCX_CMD=codex ccx ~/code/foo   # launch Codex instead of Claude
 ```
 
+## Which agent it launches
+
+Defaults to **Claude Code** (`claude --dangerously-skip-permissions`). Override with `CCX_CMD`
+(or `--command` on `new-workspace`). Methods tested working on macOS:
+
+| Agent / mode | `ccx` form |
+|---|---|
+| Claude Code *(default)* | `ccx <dir>` |
+| Claude Code + agent teams | `CCX_CMD="cmux claude-teams --dangerously-skip-permissions" ccx <dir>` |
+| Codex | `CCX_CMD=codex ccx <dir>` |
+| Codex + subagent panes | `CCX_CMD="cmux codex-teams" ccx <dir>` |
+| OpenCode | `CCX_CMD=opencode ccx <dir>` |
+
+Also supported by cmux (needs the underlying tool installed): `cmux omo` (oh-my-openagent),
+`cmux omx` (`npm i -g oh-my-codex`), `cmux omc` (`npm i -g oh-my-claude-sisyphus`), plus
+`cmux hooks setup` to wire notifications / approval Feed / session restore into codex, gemini,
+opencode, cursor, copilot and more. The cmux *team* wrappers turn each agent's subagents into
+native cmux splits.
+
 ## How it works
 
 cmux exposes a CLI at `/Applications/cmux.app/Contents/Resources/bin/cmux` (macOS; on PATH on

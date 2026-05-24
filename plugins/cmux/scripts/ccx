@@ -18,7 +18,12 @@
 #
 # Env:
 #   CCX_CMD   command to run in the session (default: "claude --dangerously-skip-permissions")
-#             e.g. CCX_CMD="codex" ccx ~/code/foo   /   CCX_CMD="$SHELL -l" ccx .  (plain shell)
+#             Tested alternatives:
+#               CCX_CMD="cmux claude-teams --dangerously-skip-permissions"  # Claude + agent teams
+#               CCX_CMD="codex"                                            # Codex
+#               CCX_CMD="cmux codex-teams"                                 # Codex + subagent panes
+#               CCX_CMD="opencode"                                         # OpenCode
+#               CCX_CMD="$SHELL -l"                                        # plain login shell
 #   CMUX_BIN  explicit path to the cmux CLI (otherwise auto-detected)
 #
 # Examples:
@@ -26,6 +31,7 @@
 #   ccx .                       # current directory
 #   ccx ~/code/foo "Foo Bar"    # custom workspace name on first creation
 #   CCX_CMD=codex ccx ~/code/foo
+#   CCX_CMD="cmux claude-teams --dangerously-skip-permissions" ccx .
 
 set -euo pipefail
 

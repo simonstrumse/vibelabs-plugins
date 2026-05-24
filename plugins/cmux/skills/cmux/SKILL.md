@@ -45,6 +45,45 @@ It auto-detects the cmux binary and runs `claude --dangerously-skip-permissions`
 If you'd rather not use the script (e.g. to customize), every step it does is below — and as
 the agent you can parse `list-workspaces --json` yourself, so nothing here needs `jq`.
 
+## 1b. Which agent to launch — default Claude Code, others supported
+
+`ccx` / `new-workspace --command` launch **`claude --dangerously-skip-permissions` by default.**
+To launch a different agent set `CCX_CMD` (for `ccx`) or pass `--command` (for `new-workspace`).
+cmux also ships native *team* wrappers that turn an agent's subagents into real cmux splits via
+a private tmux shim — and because that shim needs to run inside a cmux terminal, it composes
+perfectly with `ccx`/`new-workspace` (e.g. `CCX_CMD="cmux claude-teams" ccx .`).
+
+**Tested working (macOS, 2026-05-24):**
+
+| Agent / mode | Raw command | `ccx` form |
+|---|---|---|
+| Claude Code *(default)* | `claude --dangerously-skip-permissions` | `ccx <dir>` |
+| Claude Code + agent teams | `cmux claude-teams [claude args]` | `CCX_CMD="cmux claude-teams --dangerously-skip-permissions" ccx <dir>` |
+| Codex | `codex` | `CCX_CMD=codex ccx <dir>` |
+| Codex + subagent panes | `cmux codex-teams [codex args]` | `CCX_CMD="cmux codex-teams" ccx <dir>` |
+| OpenCode | `opencode` | `CCX_CMD=opencode ccx <dir>` |
+
+**Supported by cmux, needs the underlying tool/setup (not verified on the test machine):**
+
+| Agent / mode | Command | Note |
+|---|---|---|
+| OpenCode + oh-my-openagent | `cmux omo` | needs `oh-my-openagent`; plain `opencode` works without it |
+| Oh My Codex | `cmux omx` | `npm i -g oh-my-codex` |
+| Oh My Claude Code | `cmux omc` | `npm i -g oh-my-claude-sisyphus` |
+| Gemini CLI | `gemini` | launches but needs its own auth |
+| Grok | `grok` | cmux's bundled shim needs a real `grok` binary on PATH |
+
+The team wrappers (`claude-teams`, `codex-teams`, `omo`, `omx`, `omc`) forward all extra args
+to the underlying CLI, so `cmux claude-teams --continue --model sonnet` etc. work.
+
+### Agent hooks — notifications, Feed approvals, session restore
+
+`cmux hooks setup` installs cmux integration for every supported agent found on PATH; or
+`cmux hooks <agent> install` for one. Supported: `codex, grok, opencode, pi, amp, cursor,
+gemini, antigravity, rovodev, hermes-agent, copilot, codebuddy, factory, qoder`. Claude Code
+hooks are injected automatically by the cmux claude wrapper, so Claude needs no setup. This
+adds desktop notifications, an approval Feed, and session restore for that agent.
+
 ## 2. Spawn a new workspace (native cwd + startup command)
 
 ```bash
