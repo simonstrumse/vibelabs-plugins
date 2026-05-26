@@ -1,0 +1,9 @@
+{
+  "name": "figma-tokens-to-wp",
+  "description": "Convert a Figma variables export (W3C design tokens) into a WordPress block-theme theme.json + matching CSS. Deterministic, stdlib-only. Calibrated against Dekode Forge — byte-identical output for the reference DPE design system on 4 of 5 artefacts.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Vibe Labs"
+  },
+  "homepage": "https://github.com/simonstrumse/vibelabs-plugins"
+}

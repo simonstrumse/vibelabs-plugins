@@ -82,6 +82,17 @@
       "source": "./plugins/cmux",
       "category": "productivity",
       "homepage": "https://github.com/simonstrumse/vibelabs-plugins"
+    },
+    {
+      "name": "figma-tokens-to-wp",
+      "description": "Convert a Figma variables export into a WordPress block-theme theme.json + matching CSS. Deterministic, stdlib-only Python. Calibrated against Dekode Forge — byte-identical output for the reference design system.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Vibe Labs"
+      },
+      "source": "./plugins/figma-tokens-to-wp",
+      "category": "productivity",
+      "homepage": "https://github.com/simonstrumse/vibelabs-plugins"
     }
   ]
 }
