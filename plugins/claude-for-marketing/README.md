@@ -137,4 +137,4 @@ Every question of substance (who the customer is, which channel, what CPA to tar
 
 ## Credits
 
-Inspired by Sean Percival's *Vibecoding + Marketing* session. Process distilled from a real worked engagement on Oslo Sea Experience. Built by [Vibe Labs](https://vibelabs.no).
+Inspired by Sean Percival's *Vibecoding + Marketing* session. Process distilled from a real worked engagement. Built by [Vibe Labs](https://vibelabs.no).

@@ -1,7 +1,7 @@
 ---
 name: mcp-scout
 description: Invoked by the claude-for-marketing orchestrator to find the newest/best MCP server for a stated connection goal (search GitHub, npm, PyPI, and MCP registries), supply-chain-verify it by reading its source and package metadata, and recommend install-or-not with the exact install command. Never recommends blind-install. Not for direct user invocation — the orchestrator names the connection goal and acts on the verdict.
-model: claude-sonnet-4-5
+model: claude-sonnet-4-6
 effort: medium
 color: purple
 tools: WebSearch, WebFetch, Bash, Read, Write

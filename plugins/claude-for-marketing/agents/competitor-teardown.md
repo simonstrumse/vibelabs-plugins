@@ -1,7 +1,7 @@
 ---
 name: competitor-teardown
 description: Invoked by the claude-for-marketing orchestrator to tear down a single named competitor — pull their live ads from the public ad libraries, audit their site and business model, and report angles, ad longevity, and whether they brand-bid. Not for direct user invocation — the orchestrator passes one competitor name/domain per dispatch and assembles the results into the competitor ad-map.
-model: claude-sonnet-4-5
+model: claude-sonnet-4-6
 effort: medium
 color: orange
 tools: WebSearch, WebFetch, Read, Write, mcp__meta-ads__ads_library_search, mcp__claude-in-chrome__navigate, mcp__claude-in-chrome__read_page, mcp__claude-in-chrome__get_page_text, mcp__claude-in-chrome__tabs_create_mcp, mcp__claude-in-chrome__computer
