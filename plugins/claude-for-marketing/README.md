@@ -119,6 +119,8 @@ Every question of substance (who the customer is, which channel, what CPA to tar
 - `measurement-implementation.md` — concrete patterns for Phase 0/5: server-side conversions, the off-site webhook→Purchase bridge, the lead bridge, search-console rank pull, IndexNow
 - `content-engine.md` — the human-in-the-loop SEO content pipeline: harvest human-written prose → voice guide + antipattern blacklist → topic gaps → draft in voice, cited → QC → date-gated publish
 - `marketing-machinery.md` — catalog of optional engines: review solicitation, review-scraping refresh, AI-visibility monitoring, structured-data/local-SEO/AIO, distribution mapping, programmatic-SEO data pages, lead magnets
+- `operating-rules.md` — the discipline layer: Iron Laws, the Gate Function (verify before you claim), rationalization tables, the red-flag STOP list, and the adversarial two-reviewer protocol
+- `browser-operations.md` — Chrome-first human-in-the-loop: the engine drives the browser (ad-account setup, dashboards, ad libraries, Search Console, GBP) up to the hard human-only gates, screenshot-verifying each step
 
 **Agents (`agents/`):**
 
