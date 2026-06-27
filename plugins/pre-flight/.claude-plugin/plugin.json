@@ -1,8 +1,13 @@
 {
   "name": "pre-flight",
+  "displayName": "Pre-Flight",
   "description": "Stakeholder reaction simulation for corporate communications. Pressure-tests any statement, press release, positioning deck, earnings script, M&A announcement, comment letter, or rebrand narrative against a dynamically-researched cast of stakeholders before publication. Composes the run from a library of modes grounded in real PR practice: crisis pre-flight, crisis tabletop, launch pre-mortem, regulatory response, deal comms, earnings rehearsal, positioning pressure test, counterfactual compare, red-team read, activist-proxy, exec-transition, internal-first. Industry-agnostic: factbase and persona cast are built per run from public sources, with persona bundles achieving interview-grade fidelity (Park et al. 2024) including verbatim signature quotes, forbidden phrases, and multi-lens expert reflection.",
   "version": "1.0.0",
-  "author": { "name": "Vibe Labs" },
+  "author": {
+    "name": "Vibe Labs",
+    "url": "https://github.com/simonstrumse"
+  },
   "repository": "https://github.com/simonstrumse/vibelabs-plugins",
-  "license": "MIT"
+  "license": "MIT",
+  "keywords": ["communications", "stakeholder", "pr", "simulation", "crisis", "red-team"]
 }

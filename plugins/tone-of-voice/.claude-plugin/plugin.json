@@ -1,10 +1,14 @@
 {
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "tone-of-voice",
+  "displayName": "Tone of Voice",
   "description": "Universal tone-of-voice and anti-AI writing principles. Layers with project-specific tone/ files. Bootstraps new projects on demand.",
   "version": "1.0.0",
   "author": {
-    "name": "Simon Strumse"
+    "name": "Simon Strumse",
+    "url": "https://github.com/simonstrumse"
   },
   "repository": "https://github.com/simonstrumse/vibelabs-plugins",
-  "license": "MIT"
+  "license": "MIT",
+  "keywords": ["writing", "tone", "voice", "copywriting", "anti-ai", "style"]
 }

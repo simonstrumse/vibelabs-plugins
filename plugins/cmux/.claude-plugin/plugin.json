@@ -1,9 +1,15 @@
 {
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "cmux",
+  "displayName": "Cmux Session Manager",
   "description": "Spawn and drive Claude Code (or any) sessions inside the cmux app from a Claude session — create/reuse workspaces, open tabs rooted in a folder, send keystrokes, and read terminal output over the cmux CLI. Works out of the box on any machine with cmux + Claude Code.",
   "version": "1.4.0",
   "author": {
-    "name": "Vibe Labs"
+    "name": "Vibe Labs",
+    "url": "https://github.com/simonstrumse"
   },
-  "homepage": "https://github.com/simonstrumse/vibelabs-plugins"
+  "homepage": "https://github.com/simonstrumse/vibelabs-plugins",
+  "repository": "https://github.com/simonstrumse/vibelabs-plugins",
+  "license": "MIT",
+  "keywords": ["cmux", "sessions", "terminal", "claude-code", "workspace", "automation"]
 }

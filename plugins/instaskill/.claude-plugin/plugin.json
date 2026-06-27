@@ -1,10 +1,21 @@
 {
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "instaskill",
+  "displayName": "InstaSkill",
   "description": "Turn your Instagram saved posts into a searchable, analyzable archive. Sync, analyze, deep dive, and extract structured data from video — all free on a Max plan.",
   "version": "1.0.0",
   "author": {
-    "name": "Simon Strumse"
+    "name": "Simon Strumse",
+    "url": "https://github.com/simonstrumse"
   },
   "repository": "https://github.com/simonstrumse/instaskill",
-  "license": "MIT"
+  "license": "MIT",
+  "keywords": [
+    "instagram",
+    "saved-posts",
+    "archive",
+    "social-media",
+    "video",
+    "analysis"
+  ]
 }
