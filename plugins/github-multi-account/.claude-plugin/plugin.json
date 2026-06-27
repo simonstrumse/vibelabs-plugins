@@ -1,8 +1,13 @@
 {
   "name": "github-multi-account",
+  "displayName": "GitHub Multi-Account",
   "description": "Auto-check and switch GitHub accounts before git push. Prevents 'Repository not found' errors when working with repos across multiple GitHub accounts.",
   "version": "1.0.0",
   "author": {
-    "name": "Simon Strumse"
-  }
+    "name": "Simon Strumse",
+    "url": "https://github.com/simonstrumse"
+  },
+  "repository": "https://github.com/simonstrumse/vibelabs-plugins",
+  "license": "MIT",
+  "keywords": ["github", "git", "multi-account", "auth", "push"]
 }

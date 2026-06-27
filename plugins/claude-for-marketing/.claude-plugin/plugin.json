@@ -1,0 +1,23 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "claude-for-marketing",
+  "displayName": "Claude for Marketing",
+  "description": "Agentic A-Z growth-marketing discovery & strategy engine. Takes a business from \"we should do marketing\" to a validated, data-grounded acquisition strategy with campaigns built and ready to run — for any vertical. Subject-agnostic: maps the inputs/connectors that actually exist (CRM/booking/transaction DB, analytics, ad platforms, search console, customer inbox, browser-only panels) via iterative AskUserQuestion, then maps jobs-to-be-done, ICP/demographics, competitors, channel economics, unit economics, capacity/timing, and the organic-vs-paid gap through a mix of asking the operator, pulling real data, and fanning out research agents. The engine is a decision loop: form a data-grounded assumption, let the operator challenge it from experience, adversarially verify BOTH against own-data or published research, correct openly (supersede, never delete), update the plan, repeat. Connects via own direct APIs (never blind-installs an MCP — scouts and verifies first). Maintains a clean knowledge base (canonical / reference / archive tiers, methodology doc, superseded log, changelog) and builds paused campaigns that never spend until the operator gives explicit go-ahead.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Vibe Labs",
+    "url": "https://github.com/simonstrumse"
+  },
+  "repository": "https://github.com/simonstrumse/vibelabs-plugins",
+  "license": "MIT",
+  "keywords": [
+    "marketing",
+    "growth",
+    "go-to-market",
+    "competitor-research",
+    "ads",
+    "strategy",
+    "jtbd",
+    "icp"
+  ]
+}
