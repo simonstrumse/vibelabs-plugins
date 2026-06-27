@@ -8,7 +8,7 @@ description: >-
   "Claude for Marketing". Connects the business's real data sources, runs an adversarial
   decision loop that challenges both the operator's and the data's assumptions, sequences
   measurement before spend, and builds campaigns paused and ready to run.
-allowed-tools: Read, Glob, Grep, Bash, Write, Edit, WebSearch, WebFetch, AskUserQuestion, Skill, Agent(assumption-validator, competitor-teardown, customer-profiler, unit-economist, mcp-scout)
+allowed-tools: Read, Glob, Grep, Bash, Write, Edit, WebSearch, WebFetch, AskUserQuestion, Skill, Agent(assumption-validator, competitor-teardown, customer-profiler, unit-economist, mcp-scout, content-engine)
 model: claude-opus-4-8
 effort: high
 ---
@@ -69,7 +69,8 @@ revenue event, attributable to the channel. *Ask:* what analytics exist, where d
 (on-site, phone, email, back office, third party), who owns the accounts/domain/tag manager. *Build:*
 web analytics + tag manager, server-side conversion API for offline sales, a webhook from the
 system-of-record so the revenue event fires for *all* channels. *Output:* a verified "tracking is live"
-section + changelog entry with exact IDs and a real end-to-end test.
+section + changelog entry with exact IDs and a real end-to-end test. Implementation patterns (server-side
+conversions, the off-site webhook→Purchase bridge, the lead bridge) are in `reference/measurement-implementation.md`.
 
 **Phase 1 — Connect & map all inputs.** *Goal:* know and connect every data source. *Ask* iteratively
 (see HOW TO ASK) — "do you already run ads?" routinely uncovers a forgotten account. *Connect:*
@@ -99,6 +100,7 @@ coexist-vs-disintermediate plan; the commission becomes a benchmark for Phase 7.
 *Data:* pull real organic rank per query from search console; split "rank #1–4 (ads cannibalize)" from
 "rank poorly on high-volume terms (ads incremental)". *Output:* a keyword/gap doc. Send the "never bid
 where you rank #1" instinct through the decision loop — it is overstated for commercial/local/mobile queries.
+(Rank-pull + IndexNow mechanics: `reference/measurement-implementation.md`.)
 
 **Phase 6 — Positioning (challenger strategy).** *Goal:* the position the incumbent structurally can't
 own, and which of their tactics to steal. *Ask:* what you can do that the big competitor can't, and the
@@ -129,6 +131,17 @@ A/B significance, plus a landing-page speed/mobile audit. *Output:* a campaign-b
 copy, decision rules against the CPA framework, and a landing-page punch-list. *Guardrail:* everything
 built **paused / as a draft** — nothing spends until the operator completes their own action list and gives
 an explicit go.
+
+**Phase 11 — Content & organic engine.** *Goal:* original, SEO-grade articles from human-written source
+material — not AI-on-AI slop. *Process:* harvest real human prose from the domain's top authors/zines/competitors
+→ distill a voice guide + antipattern blacklist → pick topics from SERP/keyword gaps → dispatch `content-engine`
+to draft each piece in that voice with every claim cited → human voice/fact QC → publish via a date-gate.
+Human-in-the-loop and quality-gated, never an unattended generator. *Output:* a voice guide, a topic queue, and
+published articles. Full pipeline in `reference/content-engine.md`; pairs with your SEO/AEO/GEO skill set.
+
+**Additional engines.** Beyond the core path, `reference/marketing-machinery.md` catalogs optional reusable
+engines — review solicitation, review-scraping refresh, AI-visibility monitoring, structured-data/local-SEO/AIO,
+distribution mapping, programmatic-SEO data pages, lead magnets — to stand up as the project needs them.
 
 ## How to ask
 

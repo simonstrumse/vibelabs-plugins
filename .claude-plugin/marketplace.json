@@ -98,7 +98,7 @@
       "name": "claude-for-marketing",
       "displayName": "Claude for Marketing",
       "description": "Agentic A-Z growth-marketing discovery & strategy engine. Subject-agnostic. Maps your real data/connectors, runs an adversarial decision loop that challenges both the operator's and the data's assumptions, sequences measurement before spend, tears down competitors and resellers via the ad libraries, derives a capacity-tiered CPA framework, and builds campaigns paused and ready. Bundles a marketing-foundations knowledge base (JTBD, ICP, pirate metrics, ICE) and five research-agent archetypes.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": {
         "name": "Vibe Labs"
       },

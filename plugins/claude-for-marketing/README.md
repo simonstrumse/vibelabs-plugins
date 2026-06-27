@@ -111,18 +111,23 @@ Every question of substance (who the customer is, which channel, what CPA to tar
 
 **Reference toolbox (`reference/`):**
 
-- `playbook.md` — the full ten-phase process with goals, operator questions, research/data moves, output docs, and loop-back triggers
-- `marketing-foundations.md` — the operating principles, source-quality tiers, incrementality discipline, and CPA framework math
-- `connectors.md` — how to find, verify, and wire up connectors for each category (analytics, ad platforms, CRM/booking DB, search console, inbox, browser automation)
+- `playbook.md` — the full phased process with goals, operator questions, research/data moves, output docs, and loop-back triggers
+- `marketing-foundations.md` — JTBD, ICP, pirate metrics (AARRR/RARRA), ICE/RICE, growth loops, North Star, positioning, and the unit-economics primer
+- `connectors.md` — the connection philosophy (direct-API-first, MCP-scout-not-blind-install) + a generic connector catalog + where this diverges from the tutorials
 - `info-architecture.md` — the canonical / reference / archive tier structure and the rules for the superseded log and changelog
-- `research-archetypes.md` — structured mandates for the recurring subagent types (competitive ad sweep, demographic extraction from inbox, keyword gap pull, assumption-validation batch, arbitrageur teardown)
+- `research-archetypes.md` — reusable prompt templates for ad-hoc research dispatch (competitor teardown, demographics, assumption batch, unit economics, MCP scout, arbitrage, demand patterns, landing-page audit)
+- `measurement-implementation.md` — concrete patterns for Phase 0/5: server-side conversions, the off-site webhook→Purchase bridge, the lead bridge, search-console rank pull, IndexNow
+- `content-engine.md` — the human-in-the-loop SEO content pipeline: harvest human-written prose → voice guide + antipattern blacklist → topic gaps → draft in voice, cited → QC → date-gated publish
+- `marketing-machinery.md` — catalog of optional engines: review solicitation, review-scraping refresh, AI-visibility monitoring, structured-data/local-SEO/AIO, distribution mapping, programmatic-SEO data pages, lead magnets
 
 **Agents (`agents/`):**
 
-- `competitive-ad-sweep.md` — fans out across ad libraries and browser automation; returns a competitor × platform × angle table with raw creative inventory
-- `demographic-extractor.md` — reads the customer inbox and transaction DB; returns segments, motivations, and recurring objections with sampling-bias caveats
-- `assumption-validator.md` — takes a list of assumptions, dispatches parallel research against published studies and expert consensus, returns verdicts with sources
-- `connector-researcher.md` — given a data-source goal, finds the best current MCP or direct API, reads its source/package for supply-chain verification, and returns an install plan
+- `assumption-validator.md` — takes a list of assumptions, dispatches parallel research against published studies and expert consensus, returns held/weakened/reversed verdicts with sources
+- `competitor-teardown.md` — given a competitor name/domain, pulls their ads from the libraries and tears down their site/model; returns angles, longevity, and whether they brand-bid
+- `customer-profiler.md` — reads the customer inbox and transaction DB; returns aggregate segments, motivations, and recurring objections with proxy-vs-truth and sampling-bias caveats
+- `unit-economist.md` — given price, variable cost, repeat behavior, and commission, derives the three-number CPA framework (break-even, benchmark, capacity-tiered target), incremental-only
+- `mcp-scout.md` — given a connection goal, finds the newest/best MCP, supply-chain-verifies it, and returns an install-or-not recommendation — never a blind install
+- `content-engine.md` — drafts one original article from human-written sources in the project's voice, every claim cited; returns a draft + sources + self-QC for human review (never publishes)
 
 ---
 
