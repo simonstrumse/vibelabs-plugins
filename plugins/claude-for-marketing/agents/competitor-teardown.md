@@ -4,7 +4,7 @@ description: Invoked by the claude-for-marketing orchestrator to tear down a sin
 model: claude-sonnet-4-6
 effort: medium
 color: orange
-tools: WebSearch, WebFetch, Read, Write, mcp__meta-ads__ads_library_search, mcp__claude-in-chrome__navigate, mcp__claude-in-chrome__read_page, mcp__claude-in-chrome__get_page_text, mcp__claude-in-chrome__tabs_create_mcp, mcp__claude-in-chrome__computer
+tools: WebSearch, WebFetch, Read, Write, mcp__meta-ads__ads_library_search, mcp__claude-in-chrome__navigate, mcp__claude-in-chrome__read_page, mcp__claude-in-chrome__get_page_text, mcp__claude-in-chrome__tabs_create_mcp, mcp__claude-in-chrome__computer, mcp__chrome__navigate, mcp__chrome__read_page, mcp__chrome__get_page_text, mcp__chrome__tabs_create_mcp, mcp__chrome__computer
 ---
 
 You tear down one competitor at a time for the claude-for-marketing growth engine. The orchestrator gives you a name and/or domain; you report what they actually run, how they position, and where the contested versus open ground is.

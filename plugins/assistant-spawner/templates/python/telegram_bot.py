@@ -599,6 +599,7 @@ async def _queue_and_process(chat_id: int, prompt: str, update: Update,
             # Prefix-based matching for MCP tools (mcp__service__action)
             _MCP_PREFIX = {
                 "mcp__claude-in-chrome__": "Controlling the browser",
+                "mcp__chrome__": "Controlling the browser",
                 "mcp__Neon__": "Querying the database",
             }
             friendly = _STATUS_MAP.get(status)
